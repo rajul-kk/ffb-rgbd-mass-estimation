@@ -1,0 +1,28 @@
+# Large data files
+data/
+data.zip
+*.bag
+fused_cache/
+
+# Model weights (downloaded at runtime)
+*.pt
+*.pth
+*.ckpt
+
+# Generated outputs
+ffb_results_v2.csv
+comparison_v2.png
+*.npz
+
+# Debug artefacts
+*_debug.png
+*_debug.jpg
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# HuggingFace / torch cache
+.cache/
