@@ -89,17 +89,17 @@ Scale and density are refitted jointly in cross-validation.
 
 | FFB | Actual | v1 | A | C | v1 err | A err | C err |
 |---|---|---|---|---|---|---|---|
-| FFB10 | 18.0 | 18.98 | 18.70 | 17.70 | +0.98 | +0.70 | −0.30 |
-| FFB11 | 14.0 | 17.40 | 15.01 | 16.34 | +3.40 | +1.01 | +2.34 |
-| FFB12 | 22.0 | 22.02 | 22.56 | 23.11 | +0.02 | +0.56 | +1.11 |
-| FFB17 | 14.0 | 15.76 | 11.53 | 11.02 | +1.76 | −2.47 | −2.98 |
-| FFB18 † | 10.0 | 20.05 | 13.19 | 12.99 | +10.05 | +3.19 | +2.99 |
-| FFB19 | 20.0 | 17.30 | 18.61 | 18.07 | −2.70 | −1.39 | −1.93 |
-| FFB31 | 14.0 | 15.97 | 13.41 | 12.29 | +1.97 | −0.59 | −1.71 |
-| FFB32 | 10.0 | 12.24 | 8.06 | 3.86 | +2.24 | −1.95 | −6.14 |
-| FFB33 | 13.0 | 14.58 | 14.92 | 14.58 | +1.58 | +1.92 | +1.57 |
-| FFB34 | 14.0 | 13.83 | 12.33 | 13.75 | −0.18 | −1.67 | −0.25 |
-| FFB35 | 14.0 | 10.42 | 14.05 | 14.53 | −3.58 | +0.05 | +0.53 |
+| FFB10 | 18.0 | 18.98 | 18.70 | 17.41 | +0.98 | +0.70 | −0.59 |
+| FFB11 | 14.0 | 17.41 | 15.01 | 16.08 | +3.41 | +1.01 | +2.08 |
+| FFB12 | 22.0 | 22.02 | 22.56 | 23.61 | +0.02 | +0.56 | +1.61 |
+| FFB17 | 14.0 | 15.83 | 11.53 | 10.85 | +1.83 | −2.47 | −3.15 |
+| FFB18 † | 10.0 | 20.05 | 13.19 | 12.79 | +10.05 | +3.19 | +2.79 |
+| FFB19 | 20.0 | 17.30 | 18.61 | 18.21 | −2.70 | −1.39 | −1.79 |
+| FFB31 | 14.0 | 16.71 | 13.24 | 12.03 | +2.71 | −0.76 | −1.97 |
+| FFB32 | 10.0 | 12.24 | 7.95 | 3.78 | +2.24 | −2.05 | −6.22 |
+| FFB33 | 13.0 | 14.96 | 14.90 | 14.58 | +1.96 | +1.90 | +1.58 |
+| FFB34 | 14.0 | 15.04 | 12.17 | 13.46 | +1.04 | −1.83 | −0.54 |
+| FFB35 | 14.0 | 11.27 | 14.38 | 14.93 | −2.73 | +0.38 | +0.93 |
 
 † FFB18 excluded from all metrics (person in frame — +10 kg systematic error,
 unfixable algorithmically).
@@ -108,9 +108,9 @@ unfixable algorithmically).
 
 | Approach | MAE | MAPE | r | r² |
 |---|---|---|---|---|
-| v1 — 15-frame IQR | 1.80 kg | 13.1% | 0.828 | 0.686 |
-| **A — temporal + depth mask** | **1.20 kg** | **9.2%** | **0.929** | **0.863** |
-| C — temporal + GDino→SAM2 | 1.89 kg | 15.2% | 0.864 | 0.747 |
+| v1 — 15-frame IQR | 1.95 kg | 14.2% | 0.831 | 0.691 |
+| **A — temporal + depth mask** | **1.27 kg** | **9.8%** | **0.926** | **0.857** |
+| C — temporal + GDino→SAM2 | 1.99 kg | 15.8% | 0.868 | 0.753 |
 
 ### 4/7 exhaustive cross-validation — Approach A (excl. FFB18)
 
@@ -119,25 +119,32 @@ C(11,4) = 330 splits · 4 train / 7 test · each FFB tested in 210 folds
 
 | | MAE | MAPE | r² |
 |---|---|---|---|
-| All 2310 predictions | 1.67 kg | 12.4% | 0.866 |
-| Per-FFB mean | — | — | **0.893** |
+| All 2100 predictions (excl. FFB18) | 1.66 kg | 12.3% | 0.860 |
+| Per-FFB mean (excl. FFB18) | — | — | **0.886** |
 | **Aqil thesis (n = 50, manual)** | — | — | **0.900** |
+
+Including FFB18 (known outlier — person in frame):
+
+| | MAE | MAPE | r² |
+|---|---|---|---|
+| All 2310 predictions | 1.85 kg | 14.8% | 0.748 |
+| Per-FFB mean | — | — | 0.772 |
 
 ### Per-FFB CV breakdown (Approach A)
 
 | FFB | Actual mass | CV pred mean | Mean abs err | MAPE |
 |---|---|---|---|---|
-| FFB10 | 17.0 kg | 18.91 kg | 1.91 kg | 11.2% |
-| FFB11 | 14.0 kg | 15.08 kg | 1.10 kg | 7.9% |
-| FFB12 | 21.6 kg | 22.70 kg | 1.33 kg | 6.2% |
-| FFB17 | 13.4 kg | 11.36 kg | 2.04 kg | 15.2% |
-| FFB18 | 9.6 kg | 13.46 kg | 3.86 kg | 40.2% |
-| FFB19 | 19.6 kg | 18.40 kg | 1.37 kg | 7.0% |
-| FFB31 | 13.8 kg | 11.58 kg | 2.22 kg | 16.1% |
-| FFB32 | 9.8 kg | 6.97 kg | 2.83 kg | 28.9% |
-| FFB33 | 12.0 kg | 13.14 kg | 1.15 kg | 9.6% |
-| FFB34 | 12.6 kg | 10.67 kg | 1.93 kg | 15.3% |
-| FFB35 | 13.0 kg | 12.23 kg | 0.86 kg | 6.6% |
+| FFB10 | 17.0 kg | 18.83 kg | 1.83 kg | 10.8% |
+| FFB11 | 14.0 kg | 15.02 kg | 1.05 kg | 7.5% |
+| FFB12 | 21.6 kg | 22.60 kg | 1.27 kg | 5.9% |
+| FFB17 | 13.4 kg | 11.32 kg | 2.08 kg | 15.5% |
+| FFB18 | 9.6 kg | 13.40 kg | 3.80 kg | 39.6% |
+| FFB19 | 19.6 kg | 18.32 kg | 1.42 kg | 7.2% |
+| FFB31 | 13.8 kg | 11.54 kg | 2.26 kg | 16.4% |
+| FFB32 | 9.8 kg | 6.95 kg | 2.85 kg | 29.1% |
+| FFB33 | 12.0 kg | 13.26 kg | 1.26 kg | 10.5% |
+| FFB34 | 12.6 kg | 10.63 kg | 1.97 kg | 15.6% |
+| FFB35 | 13.0 kg | 12.66 kg | 0.60 kg | 4.6% |
 
 Hardest FFBs: FFB18 (person in frame), FFB32 (sparse depth, low colour contrast),
 FFB31 and FFB17 (consistently underestimated — possible recording distance issue).
@@ -146,13 +153,13 @@ FFB31 and FFB17 (consistently underestimated — possible recording distance iss
 
 ## What each adaptation contributed
 
-Starting from the v1 in-sample MAE of 1.80 kg:
+Starting from the v1 in-sample MAE of 1.95 kg:
 
 | Adaptation | MAE after |
 |---|---|
-| Temporal nanmedian depth (120 frames vs 15) | 1.58 kg |
-| Adaptive HSV threshold + adaptive z_window | 1.42 kg |
-| Per-camera scale recalibration (848 px vs 1280 px fit separately) | **1.20 kg** |
+| Temporal nanmedian depth (120 frames vs 15) | ~1.58 kg |
+| Adaptive HSV threshold + adaptive z_window | ~1.42 kg |
+| Per-camera scale recalibration (848 px vs 1280 px fit separately) | **1.27 kg** |
 
 The single largest gain came from recognising that the 848 × 480 and 1280 × 720
 cameras need independent hemisphere scale factors. Fitting one scale across both
@@ -164,11 +171,11 @@ cameras compromised the 848 px correction and introduced a systematic offset.
 
 | System | n | Accuracy (1−MAPE) | r² | Notes |
 |---|---|---|---|---|
-| **This pipeline (A, CV)** | **11** | **87.8%** | **0.893** | Zero-shot, automated |
+| **This pipeline (A, CV)** | **11** | **87.7%** | **0.886** | Zero-shot, automated |
 | Aqil thesis | 50 | — | 0.900 | Manual segmentation, CloudCompare |
 | Group 2 (YOLOv8 + PCA ellipsoid) | 6 | ~73% | — | Manual setup, 6 samples |
 
-At r² = 0.893 vs 0.900, the automated pipeline is within 0.007 r² of the
+At r² = 0.886 vs 0.900, the automated pipeline is within 0.014 r² of the
 manual benchmark despite having 4.5× fewer samples and requiring no human
 annotation or interactive segmentation.
 
@@ -181,9 +188,9 @@ On this tarp-protocol dataset, depth is a better segmentation cue than colour/te
 - The depth foreground mask directly isolates what is close to the camera —
   which is exactly the FFB
 - SAM2 segments visually coherent regions; for FFB32 (sparse fronds, low
-  saturation) the detected SAM2 mask missed most of the bunch (3.86 L vs 10.0 L
-  actual), pulling Approach C's MAE to 1.89 kg
-- Excluding FFB32, Approach C MAE ≈ 1.41 kg — still worse than A's 1.20 kg
+  saturation) the detected SAM2 mask missed most of the bunch (3.78 L vs 10.0 L
+  actual), pulling Approach C's MAE to 1.99 kg
+- Excluding FFB32, Approach C MAE ≈ 1.51 kg — still worse than A's 1.27 kg
 
 Approach C's advantage — working without a tarp background — would matter in
 field conditions where the tarp protocol cannot be enforced. The Grounding DINO

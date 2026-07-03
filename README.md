@@ -10,11 +10,11 @@ Evaluated on 11 FFBs (excluding FFB18 — person in frame):
 
 | Approach | Segmentation | MAE | MAPE | r² |
 |---|---|---|---|---|
-| v1 — baseline | Depth mask, 15 frames | 1.80 kg | 13.1% | 0.686 |
-| **A — best** | Temporal depth mask | **1.20 kg** | **9.2%** | **0.863** |
-| C — comparison | Grounding DINO → SAM2 | 1.89 kg | 15.2% | 0.747 |
+| v1 — baseline | Depth mask, 15 frames | 1.95 kg | 14.2% | 0.691 |
+| **A — best** | Temporal depth mask | **1.27 kg** | **9.8%** | **0.857** |
+| C — comparison | Grounding DINO → SAM2 | 1.99 kg | 15.8% | 0.753 |
 
-**4/7 exhaustive CV — Approach A (excl. FFB18):** MAE = 1.67 kg · r² = 0.893 per-FFB mean  
+**4/7 exhaustive CV — Approach A (excl. FFB18):** MAE = 1.66 kg · r² = 0.886 per-FFB mean  
 **Aqil thesis benchmark** (n = 50, manual CloudCompare): r² = 0.900
 
 ---
@@ -96,10 +96,10 @@ Scale and density are refitted jointly in cross-validation.
 
 | Adaptation | MAE |
 |---|---|
-| v1 baseline | 1.80 kg |
-| + Temporal nanmedian (120 frames) | 1.58 kg |
-| + Adaptive HSV threshold + z_window | 1.42 kg |
-| + Per-camera scale recalibration | **1.20 kg** |
+| v1 baseline | 1.95 kg |
+| + Temporal nanmedian (120 frames) | ~1.58 kg |
+| + Adaptive HSV threshold + z_window | ~1.42 kg |
+| + Per-camera scale recalibration | **1.27 kg** |
 
 ---
 
@@ -135,7 +135,7 @@ RGBD-Mass/
 | `run_all` | Process all bundles; fused depth shared between A and C |
 | `01c74738` | Per-camera scale recalibration (least-squares refit) |
 | `compare` | Results table + MAE / MAPE / r² + scatter plots |
-| `fd5e63ad` | 5/6 exhaustive cross-validation (462 splits, 2772 predictions) |
+| `fd5e63ad` | 4/7 exhaustive cross-validation (330 splits, 2310 predictions) |
 
 ---
 
@@ -211,6 +211,6 @@ The pipeline is a **controlled-protocol instrument**: it requires a flat tarp ba
 
 | System | n | Accuracy (1−MAPE) | r² | Notes |
 |---|---|---|---|---|
-| **This pipeline (A, CV)** | **11** | **87.6%** | **0.893** | Zero-shot, automated |
+| **This pipeline (A, CV)** | **11** | **87.7%** | **0.886** | Zero-shot, automated |
 | Aqil thesis | 50 | — | 0.900 | Manual segmentation, CloudCompare |
 | Group 2 (YOLOv8 + PCA ellipsoid) | 6 | ~73% | — | Manual setup, 6 samples |
