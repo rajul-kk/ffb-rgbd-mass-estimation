@@ -87,10 +87,10 @@ Per-camera hemisphere correction (least-squares fit to ground truth):
 
 ```
 mass = volume × DENSITY_CONSTANT
-DENSITY_CONSTANT = 956.28 kg/m³   (mean of 11 FFBs, one variety)
+DENSITY_CONSTANT = 956.28 kg/m³   (mean of all 50 rows in ground_truth.csv)
 ```
 
-Scale and density are refitted jointly in cross-validation.
+Density cancels out of the fitted prediction (mass = V_raw · Σ(m·r)/Σ(r²)), so only one gain is actually fitted.
 
 ### What each adaptation contributed (v1 → A)
 
@@ -178,7 +178,7 @@ Set `PROJECT_DIR` in `preflight` to the directory containing `perception_pipelin
 
 | Parameter | Value | Notes |
 |---|---|---|
-| `DENSITY_CONSTANT` | 956.28 kg/m³ | Mean of 11 FFBs, one variety — re-derive for new varieties |
+| `DENSITY_CONSTANT` | 956.28 kg/m³ | Mean of all 50 GT rows (mass ÷ rounded volume); cancels after scale refit |
 | `SCALE_BY_WIDTH` | `{1280: 2.02, 848: 2.53}` | Hemisphere correction — re-derive if shooting distance changes |
 | `MAX_SCAN` | 120 | Frames scanned for temporal accumulation |
 | `N_FRAMES` | 15 | Frames used by v1 baseline |

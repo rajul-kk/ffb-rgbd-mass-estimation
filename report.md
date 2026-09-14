@@ -76,10 +76,10 @@ Hemisphere correction (fitted per camera resolution):
 
 ```
 mass = volume × DENSITY_CONSTANT
-DENSITY_CONSTANT = 956.28 kg/m³   (mean of 11 FFBs)
+DENSITY_CONSTANT = 956.28 kg/m³   (mean of all 50 rows in ground_truth.csv)
 ```
 
-Scale and density are refitted jointly in cross-validation.
+Density cancels out of the fitted prediction (mass = V_raw · Σ(m·r)/Σ(r²)), so only one gain is actually fitted.
 
 ---
 
@@ -115,7 +115,7 @@ unfixable algorithmically).
 ### 4/7 exhaustive cross-validation — Approach A (excl. FFB18)
 
 C(11,4) = 330 splits · 4 train / 7 test · each FFB tested in 210 folds  
-2310 total hold-out predictions · density and scale refitted per fold
+2310 total hold-out predictions · one gain refitted per fold (density cancels)
 
 | | MAE | MAPE | r² |
 |---|---|---|---|
