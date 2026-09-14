@@ -71,6 +71,17 @@ def intrinsics(bundle: Bundle, stream: str = "auto") -> Intrinsics:
     return Intrinsics(i.fx, i.fy, i.ppx, i.ppy, i.width, i.height, float(scale))
 
 
+def color_intrinsics(bundle: Bundle) -> Intrinsics:
+    """Intrinsics of the colour stream (read from the RGB bag for split bundles)."""
+    pipe, profile = _start(bundle.rgb_bag or bundle.depth_bag)
+    try:
+        s = next(s for s in profile.get_streams() if s.stream_type().name == "color")
+        i = s.as_video_stream_profile().get_intrinsics()
+    finally:
+        pipe.stop()
+    return Intrinsics(i.fx, i.fy, i.ppx, i.ppy, i.width, i.height)
+
+
 def _rgb(frame) -> np.ndarray:
     img = np.asanyarray(frame.get_data())
     return (img[..., ::-1] if frame.get_profile().format().name == "bgr8" else img).copy()

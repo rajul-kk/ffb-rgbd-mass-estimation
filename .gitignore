@@ -26,3 +26,6 @@ __pycache__/
 
 # HuggingFace / torch cache
 .cache/
+
+# Optional model environment (MoGe-2, SAM 3)
+.venv-models/
