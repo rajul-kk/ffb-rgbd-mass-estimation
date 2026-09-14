@@ -1,0 +1,153 @@
+{
+  "parity": {
+    "ratio_by_group": [
+      {
+        "group": "combined",
+        "count": 6,
+        "mean": 2.2487875318191644,
+        "std": 0.00042352678200909704,
+        "cv_pct": 0.018833561464407605
+      },
+      {
+        "group": "split",
+        "count": 5,
+        "mean": 2.530397308333817,
+        "std": 0.0006866308002609446,
+        "cv_pct": 0.02713529602641999
+      }
+    ],
+    "insample_per_session": {
+      "n": 10,
+      "mae": 1.273264583821794,
+      "mape": 9.755281361787087,
+      "pearson_r2": 0.8565803748332793,
+      "r2": 0.8104686707057182
+    },
+    "cv_global": {
+      "model": "global_k",
+      "n_pred": 2100,
+      "n_missing": 0,
+      "mae": 1.6593006325978825,
+      "mape": 12.316358000689805,
+      "pearson_r2_all": 0.8597571363060442,
+      "r2_all": 0.6955219840275706,
+      "pearson_r2_per_ffb": 0.8859144535459387
+    },
+    "cv_per_session": {
+      "model": "per_session_k",
+      "n_pred": 2000,
+      "n_missing": 100,
+      "mae": 1.969780053175018,
+      "mape": 14.360166520020181,
+      "pearson_r2_all": 0.6762412690536992,
+      "r2_all": 0.540587158960251,
+      "pearson_r2_per_ffb": 0.7698283870600832
+    }
+  },
+  "jackknife_plus": [
+    {
+      "step": "S0_notebook",
+      "model": "per_session_k",
+      "coverage": 0.9,
+      "median_width_kg": 6.186686762309094
+    },
+    {
+      "step": "S0_notebook",
+      "model": "global_k",
+      "coverage": 0.9,
+      "median_width_kg": 5.595887367242023
+    },
+    {
+      "step": "S4_tarp_plane",
+      "model": "per_session_k",
+      "coverage": 0.9,
+      "median_width_kg": 9.45142049973925
+    },
+    {
+      "step": "S4_tarp_plane",
+      "model": "global_k",
+      "coverage": 0.9,
+      "median_width_kg": 12.575496277597686
+    }
+  ],
+  "caliper": {
+    "loo_same_10": {
+      "n": 10,
+      "mae": 2.0192384616997208,
+      "mape": 13.478932753037414,
+      "pearson_r2": 0.5837323947625712,
+      "r2": 0.5686012828536754
+    },
+    "fit_other_40": {
+      "n": 10,
+      "mae": 1.672720895454702,
+      "mape": 10.6524120096467,
+      "pearson_r2": 0.7402886379872214,
+      "r2": 0.5370730201021968
+    }
+  },
+  "synthetic": [
+    {
+      "depth_grid": "1280x720",
+      "shape": "dome",
+      "tarp_m": 1.55,
+      "ref_over_true": 1.0002980199093887,
+      "frustum_over_ref": 0.999977338027591,
+      "grid_plane_ref_over_ref": 0.7416277414037481,
+      "grid_tight_mask_over_ref": 0.4288718307482062
+    },
+    {
+      "depth_grid": "1280x720",
+      "shape": "resting ellipsoid",
+      "tarp_m": 1.55,
+      "ref_over_true": 1.3278915252340933,
+      "frustum_over_ref": 0.9996809219443337,
+      "grid_plane_ref_over_ref": 0.8062214198859562,
+      "grid_tight_mask_over_ref": 0.19061100426021307
+    },
+    {
+      "depth_grid": "848x480",
+      "shape": "dome",
+      "tarp_m": 1.55,
+      "ref_over_true": 1.0002999582247147,
+      "frustum_over_ref": 1.0001402039006222,
+      "grid_plane_ref_over_ref": 0.33193246250014424,
+      "grid_tight_mask_over_ref": 0.19126272535358807
+    },
+    {
+      "depth_grid": "848x480",
+      "shape": "resting ellipsoid",
+      "tarp_m": 1.55,
+      "ref_over_true": 1.3279092797312246,
+      "frustum_over_ref": 0.9997310270168377,
+      "grid_plane_ref_over_ref": 0.36080310802929483,
+      "grid_tight_mask_over_ref": 0.08520995178282985
+    }
+  ],
+  "cv_S4_tarp_plane": [
+    {
+      "model": "per_session_k",
+      "n_pred": 2000,
+      "n_missing": 100,
+      "mae": 2.31288654601526,
+      "mape": 16.223758698654244,
+      "pearson_r2_all": 0.4696244320732043,
+      "r2_all": 0.27449265385614685,
+      "pearson_r2_per_ffb": 0.5734222401949052
+    },
+    {
+      "model": "global_k",
+      "n_pred": 2100,
+      "n_missing": 0,
+      "mae": 2.7735857885679955,
+      "mape": 20.078642565019386,
+      "pearson_r2_all": 0.6611642655678203,
+      "r2_all": 0.05349419261405164,
+      "pearson_r2_per_ffb": 0.6985328386076589
+    }
+  ],
+  "sam3": {
+    "status": "blocked: RuntimeError: SAM 3 needs transformers>=5 with Sam3Model"
+  },
+  "runtime_s": 352.7
+}
