@@ -64,7 +64,7 @@ def main():
         t0 = time.time()
         with torch.inference_mode():
             out = model.infer(torch.from_numpy(rgb).permute(2, 0, 1).float() / 255,
-                              fov_x=float(np.degrees(2 * np.arctan(w / (2 * Kc.fx)))))
+                              fov_x=float(np.degrees(2 * np.arctan(w / (2 * Kc.fx)))), use_fp16=False)
         depth = out["depth"].cpu().numpy().astype(np.float32)
         depth[~out["mask"].cpu().numpy().astype(bool) | ~np.isfinite(depth)] = 0
         seconds = time.time() - t0
