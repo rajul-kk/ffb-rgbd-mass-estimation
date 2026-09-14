@@ -39,7 +39,7 @@ def _start(path: str, streams=()):
 
 
 def find_bundle(folder: str) -> Bundle:
-    name, depth_bag, rgb_bag = os.path.basename(os.path.normpath(folder)), None, None
+    name, depth_bag, rgb_bag = os.path.basename(os.path.normpath(str(folder))), None, None
     for f in sorted(os.listdir(folder)):
         if not f.endswith(".bag"):
             continue
@@ -48,22 +48,22 @@ def find_bundle(folder: str) -> Bundle:
         types = {s.stream_type().name for s in profile.get_streams()}
         pipe.stop()
         if {"depth", "color"} <= types:
-            return Bundle(name, folder, path, None)
+            return Bundle(name, str(folder), path, None)
         if "depth" in types:
             depth_bag = path
         elif "color" in types:
             rgb_bag = path
     if depth_bag is None:
         raise FileNotFoundError(f"no depth bag in {folder}")
-    return Bundle(name, folder, depth_bag, rgb_bag)
+    return Bundle(name, str(folder), depth_bag, rgb_bag)
 
 
-def intrinsics(bundle: Bundle) -> Intrinsics:
-    """Colour intrinsics when the depth bag has colour, else depth (the notebook's rule)."""
+def intrinsics(bundle: Bundle, stream: str = "auto") -> Intrinsics:
+    """Intrinsics of the depth grid: "auto" uses colour when the bag has it (aligned depth), "depth" never does."""
     pipe, profile = _start(bundle.depth_bag)
     try:
         by_type = {s.stream_type().name: s for s in profile.get_streams()}
-        s = by_type["color"] if "color" in by_type else by_type["depth"]
+        s = by_type["color"] if stream == "auto" and "color" in by_type else by_type["depth"]
         i = s.as_video_stream_profile().get_intrinsics()
         scale = profile.get_device().first_depth_sensor().get_depth_scale()
     finally:
@@ -93,16 +93,18 @@ def _stream(path: str, stream: str, max_frames: Optional[int]) -> Iterator[np.nd
         pipe.stop()
 
 
-def _combined(path: str, max_frames: Optional[int]):
+def _combined(path: str, max_frames: Optional[int], align: bool):
     rs = _rs()
     pipe, _ = _start(path, ["color", "depth"])
-    align, n = rs.align(rs.stream.color), 0
+    aligner, n = (rs.align(rs.stream.color) if align else None), 0
     try:
         while max_frames is None or n < max_frames:
             try:
-                fs = align.process(pipe.wait_for_frames(timeout_ms=3000))
+                fs = pipe.wait_for_frames(timeout_ms=3000)
             except RuntimeError:
                 return
+            if aligner is not None:
+                fs = aligner.process(fs)
             c, d = fs.get_color_frame(), fs.get_depth_frame()
             if c and d:
                 n += 1
@@ -112,13 +114,15 @@ def _combined(path: str, max_frames: Optional[int]):
 
 
 def iter_frames(bundle: Bundle, max_frames: Optional[int] = None, reader: str = "fixed"):
-    """Yield (rgb or None, depth uint16). reader="notebook" delegates to bag_reader for exact parity."""
+    """Yield (rgb or None, depth uint16). "notebook" reuses bag_reader; "native" leaves combined-bag depth unaligned."""
     if reader == "notebook":
         import bag_reader
         yield from bag_reader.iter_bundle(bundle.folder, max_frames=max_frames)
         return
+    if reader not in ("fixed", "native"):
+        raise ValueError(f"unknown reader {reader!r}")
     if bundle.rgb_bag is None:
-        yield from _combined(bundle.depth_bag, max_frames)
+        yield from _combined(bundle.depth_bag, max_frames, align=reader == "fixed")
         return
     depth = list(_stream(bundle.depth_bag, "depth", max_frames))
     rgb = list(_stream(bundle.rgb_bag, "color", max_frames))

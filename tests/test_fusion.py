@@ -1,9 +1,11 @@
+import hashlib
+import json
 import warnings
 
 import cv2
 import numpy as np
 
-from ffb.fusion import nan_median3, nanmedian_rows, to_metric
+from ffb.fusion import FusionConfig, frame_changes, nan_median3, nanmedian_rows, steady_prefix, to_metric
 
 
 def test_nan_median3_matches_bruteforce():
@@ -42,3 +44,20 @@ def test_nanmedian_rows_matches_single_call():
         warnings.simplefilter("ignore", RuntimeWarning)
         expected = np.nan_to_num(np.nanmedian(stack, axis=0), nan=0.0)
     assert np.allclose(nanmedian_rows(stack, rows=7), expected, rtol=0, atol=0)
+
+
+def test_steady_prefix_stops_at_first_disturbed_frame():
+    base = np.random.default_rng(3).integers(1200, 1500, (48, 64)).astype(np.uint16)
+    depths = [base.copy() for _ in range(30)]
+    for d in depths[12:20]:
+        d[10:40, 10:50] = 900  # something 30-60 cm nearer covers ~40% of the view
+    changed = frame_changes(depths, 0.001, ref_frames=8, tol_m=0.02)
+    assert changed[:12].max() == 0 and changed[12] > 0.3
+    assert steady_prefix(changed, 0.08) == 12
+
+
+def test_all_frames_cache_keys_match_v2_names():
+    old = {"max_frames": 120, "reader": "notebook", "spatial": "blur_then_mask"}
+    expected = hashlib.sha1(json.dumps(old, sort_keys=True).encode()).hexdigest()[:10]
+    assert FusionConfig(reader="notebook").key() == expected
+    assert FusionConfig(frames="steady").key() != FusionConfig().key()
