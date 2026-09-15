@@ -33,7 +33,14 @@ Evaluated on 10 FFBs (FFB18 excluded: person in frame).
 | A — best | Temporal depth mask | 1.27 kg | 9.8% | 0.857 |
 | C — comparison | Grounding DINO → SAM2 | 1.99 kg | 15.8% | 0.753 |
 
-**4-train/7-test cross-validation, Approach A.** One gain: MAE 1.66 kg, per-FFB Pearson r² 0.886. Per-session gains (the in-sample model): MAE 1.97 kg, per-FFB Pearson r² 0.770.
+**Repeated splits, Approach A** (all 330 splits; FFB18 is used for training but never scored).
+
+| Calibration | 4 train / 7 test | 7 train / 4 test |
+|---|---|---|
+| One gain | 1.66 kg, per-FFB Pearson r² 0.886 | 1.59 kg, 0.89 |
+| Per-session gains (the in-sample model) | 1.97 kg, 0.770 | 1.65 kg, 0.79 |
+
+**Attempted fixes.** None of the v3 changes (steady frames, filter order, grid-free volume, tarp plane, unaligned depth) beats v2 under leave-one-out, 4/7 or 7/4 evaluation (report §9).
 
 **Open problem.** Errors differ systematically between the two recording sessions (report §9). More bunches recorded in one fixed setup are needed before any change can be confirmed.
 
@@ -53,7 +60,7 @@ The v2 notebook takes a short `.bag` recording of an FFB on a tarp and outputs a
     └─ Approach C (comparison): Grounding DINO → SAM2 mask → 2.5D grid volume
 ```
 
-The `ffb` package re-implements v2 exactly for CPU and adds optional fixes, evaluated in `notebooks/ffb_pipeline_v3.ipynb`:
+The `ffb` package re-implements v2 exactly for CPU and adds optional changes, evaluated in `notebooks/ffb_pipeline_v3.ipynb` (none improved held-out accuracy):
 
 - **Steady frames:** fuse only frames recorded before the scene is disturbed.
 - **Frame reading:** frames are copied (no 32-frame cap), and invalid pixels are kept out of the median filter.

@@ -162,6 +162,39 @@ def synthetic_check(tarp_depth: float, cameras: dict):
     return rows
 
 
+def heldout_comparison(vol, gt, steps, models=BASE_MODELS, excluded=EXCLUDED, B: int = 20000):
+    """MAE per (model, step, scheme) for LOO and every 4-train and 7-train split, paired against the first step.
+    Split schemes train on excluded bunches but never score them, as v2 did; errors are per-bunch means."""
+    rows = []
+    for model in models:
+        base = None
+        for step, fusion, vcol in steps:
+            df = step_frame(vol, gt, fusion, vcol)
+            if df[list(model.features)].isna().any().any():
+                continue
+            scored = df.drop(index=excluded, errors="ignore")
+            pred = ev.loo(scored, model)
+            schemes = {"LOO": ((pred - scored["mass"]).abs(), ev.metrics(scored["mass"], pred)["pearson_r2"], 0)}
+            for n_train in (4, 7):
+                cv = ev.exhaustive_cv(df, model, n_train)
+                cv = cv[~cv["ffb"].isin(excluded)]
+                missing = int(cv["pred"].isna().sum())
+                cv = cv.dropna()
+                per = cv.assign(ae=(cv["pred"] - cv["actual"]).abs()).groupby("ffb").agg(
+                    actual=("actual", "first"), pred=("pred", "mean"), ae=("ae", "mean"))
+                schemes[f"{n_train}/{len(df) - n_train}"] = (per["ae"], ev.metrics(per["actual"], per["pred"])["pearson_r2"], missing)
+            if base is None:
+                base = schemes
+            for scheme, (err, r2, missing) in schemes.items():
+                row = dict(model=model.name, step=step, scheme=scheme, mae=float(err.mean()), per_bunch_r2=r2, missing=missing)
+                if schemes is not base:
+                    common = err.index.intersection(base[scheme][0].index)
+                    pb = ev.paired_bootstrap(err[common], base[scheme][0][common], B=B)
+                    row |= {f"vs_first_{k}": v for k, v in pb.items()}
+                rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def sam3_eval(keep):
     """SAM 3 masks (text, and text plus the depth-mask box) turned into volumes; reports why if unavailable."""
     from .semantic import Sam3Segmenter
