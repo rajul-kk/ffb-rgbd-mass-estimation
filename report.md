@@ -15,6 +15,7 @@
 - **Baseline.** A caliper ellipsoid fitted on 40 other bunches reaches **1.67 kg** on the same 10. The pipeline matches it on absolute error and ranks bunches by size better (Pearson r² 0.89 vs 0.74), with no manual measurement.
 - **Uncertainty.** 90% prediction intervals are about ±3 kg wide.
 - **Sample size.** With 10 bunches, only MAE differences of about 0.6 kg or more can be detected.
+- **Attempted fixes.** None of the v3 changes beats v2 under leave-one-out, 4/7 or 7/4 evaluation: 0 of 60 paired comparisons are significantly better and 25 are significantly worse (Section 9).
 - **Main open problem.** Errors differ systematically between the two recording sessions. More bunches recorded in one fixed setup are needed to resolve this.
 
 ---
@@ -171,6 +172,8 @@ All C(11, 4) = 330 splits, with FFB18 in the training pool but excluded from sco
 
 \*100 predictions are impossible: in those folds, one session has no training bunch.
 
+With 7 training bunches per split (all 330 splits of 7 train / 4 test), v2 scores MAE 1.59 kg with one gain and 1.65 kg with per-session gains (per-bunch Pearson r² 0.89 and 0.79). Every split then has training bunches from both sessions.
+
 Including FFB18 in scoring (one gain, from the v2 run): MAE 1.85 kg, MAPE 14.8%, Pearson r² 0.748 (all predictions) and 0.772 (per-FFB mean).
 
 **Per-FFB breakdown (one gain)**
@@ -253,20 +256,24 @@ Approach C's advantage — working without a tarp background — would matter in
 
 The `ffb` package reproduces v2 exactly and adds changes one at a time (`notebooks/ffb_pipeline_v3.ipynb`). **Steady frames** means frames from the start of the recording up to the first frame where more than 8% of pixels moved over 2 cm or lost depth, relative to frames 0–7.
 
-**Leave-one-out MAE (kg), n = 10**
+**Held-out MAE (kg).** Leave-one-out (n = 10), and all 330 splits of 4 train / 7 test and of 7 train / 4 test (FFB18 used for training, never scored).
 
-| Step | Per-session gain | One gain |
-|---|---|---|
-| v2 (reproduced) | 1.65 | 1.60 |
-| + steady frames only | 1.58 | 1.43 |
-| + median filter after masking | 2.29 | 2.28 |
-| + grid-free volume | 2.44 | 5.84 |
-| + tarp-plane reference | 1.69 | 3.26 |
-| + unaligned session 1 depth | 1.78 | 2.69 |
+| Step | One gain: LOO | 4/7 | 7/4 | Per-session: LOO | 4/7 | 7/4 |
+|---|---|---|---|---|---|---|
+| v2 (reproduced) | **1.60** | **1.66** | **1.59** | **1.65** | **1.97** | **1.65** |
+| + steady frames only | 1.43 | 1.79 | 1.58 | 1.58 | 2.21 | 1.85 |
+| + median filter after masking | 2.28 | 2.72 | 2.50 | 2.29 | 3.35 | 2.69 |
+| + grid-free volume | 5.84 | 5.80 | 5.78 | 2.44 | 3.76 | 2.98 |
+| + tarp-plane reference | 3.26 | 3.46 | 3.29 | 1.69 | 2.06 | 1.81 |
+| + unaligned session 1 depth | 2.69 | 2.85 | 2.70 | 1.78 | 2.11 | 1.86 |
+
+Across these three schemes and four calibration models (the two above, plus volume with an intercept and volume plus object height), none of 60 paired comparisons with v2 is significantly better, and 25 are significantly worse (paired bootstrap over bunches, 95% CI).
 
 Findings:
 
-- **Steady frames.** The only change that helped both calibrations. Paired difference from v2: −0.07 kg (95% CI −0.48 to +0.20) and −0.17 kg (−0.48 to +0.07). The direction is favourable but not statistically confirmed.
+- **v2 is the most stable.** With one gain it scores 1.59–1.66 kg under every scheme, level with the caliper baseline. Its per-session gains degrade to 1.97 kg when each split has only 4 training bunches.
+- **Steady frames do not improve accuracy.** Paired difference from v2 with one gain: −0.17 kg (leave-one-out), +0.13 kg (4/7) and −0.01 kg (7/4); with per-session gains: −0.07, +0.24 and +0.20 kg. Every CI spans zero. They remain a reasonable data-quality step for disturbed recordings.
+- **Tarp-plane volume.** With per-session gains it ties v2 under all three schemes (+0.04, +0.09 and +0.15 kg); with one gain it is clearly worse (+1.66 to +1.80 kg). It ranks bunches within a session about as well as v2, but exposes the difference between sessions.
 - **Geometry fixes are correct but raise error.** The grid-free volume is within 0.1% on synthetic scenes, and object height above the fitted tarp plane correlates at r = 0.87 with caliper thickness. Error still rises, because v2's empty grid cells and high reference depth were partly cancelling each other between sessions.
 - **Session difference.** With the tarp-plane volume, volume above the tarp ÷ displaced volume is **1.58 in session 1 and 1.07 in session 2**. This 1.5× difference is the dominant remaining error. What was tested:
   - **Depth-to-colour alignment:** accounts for part of it (1.78 → 1.58).
@@ -274,6 +281,7 @@ Findings:
   - **Tarp folds:** ruled out; session 1's tarp is flatter near the bunch.
   - **Colour-only depth:** a monocular depth model (MoGe-2) gives the same direction (2.00 vs 1.20), so the effect is unlikely to be specific to the depth camera.
   - **Bunch shape or measurement:** session 1 bunches measure about 2 cm taller than their caliper thickness, against 0.3 cm in session 2. This fits spikier bunches or a different caliper protocol, but is not confirmed.
+- **Exploratory lead.** v2 volume plus object height (mass = a·V + b·H) scores 1.04 kg (leave-one-out), 1.17 kg (7/4) and 1.65 kg (4/7). It needs about 7 training bunches and was chosen after seeing the data.
 - **Status.** These comparisons were chosen after inspecting the data and should be treated as exploratory.
 
 ---
@@ -299,7 +307,7 @@ Findings:
 2. Keep the scene still for the first ~5 s of each recording, and set RealSense depth units to 100 µm.
 3. Include an object of known volume in some recordings, to check the geometry independently of bunch ground truth.
 4. Measure displaced volume to 0.1 L, and document whether caliper measurements include spikes.
-5. Fix the model before looking at results — steady-frame fusion, tarp-plane volume, object height, one gain — and report held-out metrics with confidence intervals.
+5. Fix the candidate models before looking at results — for example v2 volume + object height, and tarp-plane volume + object height, each with one gain — and report held-out metrics (leave-one-out and repeated splits) with confidence intervals.
 6. If the v2 calibration is reused, fit one gain per recording setup from at least ~10 bunches per setup. Density does not need re-deriving for this model because it cancels.
 7. For a new background or bunch population, check the tarp saturation range (`colour_s_min`) and the [8, 22] cm protrusion clip.
 
