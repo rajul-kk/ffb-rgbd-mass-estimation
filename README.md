@@ -238,7 +238,10 @@ The pipeline is a **controlled-protocol instrument**: flat background, top-down 
 
 | System | n | MAE | 1 − MAPE | r² | Notes |
 |---|---|---|---|---|---|
-| This pipeline (A), leave-one-out | 10 | 1.60–1.65 kg | 87.7–88.2% | 0.81–0.89 (Pearson) | Automated; one calibration gain |
-| Caliper ellipsoid, fitted on 40 other bunches | 10 | 1.67 kg | 89.3% | 0.74 (Pearson) | Manual measurement, same bunches |
-| Aqil thesis | 50 | — | — | 0.900 | Manual segmentation, CloudCompare; different data, not directly comparable |
-| Group 2 (YOLOv8 + PCA ellipsoid) | 6 | — | ~73% | — | Manual setup |
+| Aqil, manual CloudCompare | 10 | **1.45 kg** | 90.1% | 0.797 (Pearson) | Manual segmentation; no gain fitted to vision output |
+| This pipeline (A), leave-one-out, one gain | 10 | 1.60 kg | 88.2% | **0.886** (Pearson) | Automated; gain fitted on the other 9 |
+| This pipeline (A), leave-one-out, per-session gains | 10 | 1.65 kg | 87.7% | 0.810 (Pearson) | Automated; gains fitted on the other 9 |
+| Caliper ellipsoid, fitted on 40 other bunches | 10 | 1.67 kg | 89.3% | 0.740 (Pearson) | Manual measurement, same bunches |
+| Group 2 (YOLOv8 + PCA ellipsoid) | 5 | 4.4 kg | 74.4% | — | Scale factor tuned; session 1 only |
+
+All rows use the same ground truth and the same bunches. Against Aqil the paired difference is **+0.15 kg (95% CI −0.36 to +0.68)** — indistinguishable on 10 bunches. Aqil's own headline over all 50 bunches is better (MAE 1.15 kg, Pearson r² 0.902) and would need roughly 0.45 kg lower MAE to beat. Group 2's published 73% is the mean of (1 − |error| ÷ actual) over 6 bunches including the excluded FFB18, and their report calls it a projected goal; on the 5 comparable bunches this pipeline scores 1.57 kg and 90.4%. See Section 7 of [report.md](report.md).

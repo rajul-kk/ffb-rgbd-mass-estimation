@@ -22,7 +22,7 @@
 
 ## 2. Objective
 
-Automate the mass estimation of oil palm Fresh Fruit Bunches (FFBs) from a short RGB-D recording, matching or exceeding the accuracy of Aqil's manual CloudCompare workflow (r² = 0.900, n = 50).
+Automate the mass estimation of oil palm Fresh Fruit Bunches (FFBs) from a short RGB-D recording, matching or exceeding the accuracy of Aqil's manual CloudCompare workflow. Scored on the same 10 bunches, the two are indistinguishable (Section 7); Aqil's published result over all 50 bunches remains better.
 
 ---
 
@@ -41,6 +41,8 @@ Automate the mass estimation of oil palm Fresh Fruit Bunches (FFBs) from a short
   - The rounding alone puts a floor of about 0.24 kg under any method's MAE.
   - With exact volumes, a linear fit of mass on displaced volume gives R² 0.982 (MAE 0.44 kg, n = 50). All remaining error is in volume estimation.
 - **Exclusion.** FFB18 is excluded from all metrics because a person is in frame. v1 overestimated its volume by 10 L and Approach A by 3.2 L.
+- **Camera identity.** The bag metadata reports a RealSense D455 (serial 215122256082), while Aqil's thesis describes a D435i. These may therefore not be his recordings, although the bunch IDs and ground truth match.
+- **Capture protocol.** Aqil's thesis rotates each bunch through four orientations of about 7 s, which fits the 24–32 s session 1 bags. The "disturbances" partway through most recordings are probably these planned rotations rather than noise, so v2's all-frame median blends several poses.
 
 ---
 
@@ -230,12 +232,22 @@ The last step was previously described as the largest gain. Held out, it is no b
 
 | System | n | MAE | 1 − MAPE | r² | Notes |
 |---|---|---|---|---|---|
-| This pipeline (A), leave-one-out | 10 | 1.60–1.65 kg | 87.7–88.2% | 0.81–0.89 (Pearson) | Automated; one calibration gain |
-| Caliper ellipsoid, fitted on 40 other bunches | 10 | 1.67 kg | 89.3% | 0.74 (Pearson) | Manual measurement, same bunches |
-| Aqil thesis | 50 | — | — | 0.900 | Manual segmentation, CloudCompare |
-| Group 2 (YOLOv8 + PCA ellipsoid) | 6 | — | ~73% | — | Manual setup |
+Both comparison systems used the same ground truth, so they can be scored on the same bunches. Aqil's per-bunch estimates come from his Appendix Tables C and D; Group 2's from their Figure A6, read off the chart.
 
-The previous version stated that the pipeline was within 0.014 r² of Aqil's benchmark. The two figures are not comparable. The 0.886 was a per-bunch mean over 2,100 cross-validation predictions, on 10 bunches, using a calibration that differed from the in-sample model; Aqil's 0.900 comes from 50 bunches and a possibly different r² definition. On the same bunches, the automated pipeline matches a caliper ellipsoid on absolute error and tracks relative size better.
+**Same 10 bunches (FFB18 excluded).**
+
+| System | MAE | MAPE | R² | Pearson r² | Calibration |
+|---|---|---|---|---|---|
+| Aqil, manual CloudCompare | **1.45 kg** | **9.9%** | **0.761** | 0.797 | None fitted to vision output; density from the same 50 bunches |
+| This pipeline (A), leave-one-out, one gain | 1.60 kg | 11.8% | 0.743 | **0.886** | Gain fitted on the other 9 |
+| This pipeline (A), leave-one-out, per-session gains | 1.65 kg | 12.3% | 0.730 | 0.810 | Gains fitted on the other 9 |
+| Caliper ellipsoid, fitted on 40 other bunches | 1.67 kg | 10.7% | 0.540 | 0.740 | Manual measurement |
+
+Paired difference, this pipeline minus Aqil: **+0.15 kg (95% CI −0.36 to +0.68)** with one gain, +0.20 kg (−0.58 to +0.99) with per-session gains. The two are indistinguishable on this sample. Aqil's own headline is better than either (MAE 1.15 kg, MAPE 8.8%, Pearson r² 0.902 over all 50 bunches; 1.17 kg and 6.6% on his 10 validation bunches), but those sets include easier bunches. Beating it would need roughly 0.45 kg lower MAE, which 10 bunches cannot demonstrate (Section 5.5).
+
+**Group 2 (YOLOv8 + PCA ellipsoid), same 5 session-1 bunches.** Their headline 73% is the mean of (1 − |error| ÷ actual) over 6 bunches, including the excluded FFB18, with an empirical scale factor whose fitting set is not stated; their own report also describes the 73% as a projected goal. On FFB10, 11, 12, 17 and 19 their medians give MAE 4.4 kg and MAPE 25.6%, against 1.57 kg and 9.6% for this pipeline (leave-one-out, one gain) and about 1.6 kg and 10% for Aqil. Their errors change sign between bunches (+3.5 to +4.6 kg on the three largest, −8.2 kg on FFB19), so a single scale factor cannot correct them.
+
+The previous version stated that the pipeline was within 0.014 r² of Aqil's benchmark. The two figures are not comparable: the 0.886 was a per-bunch mean over 2,100 cross-validation predictions on 10 bunches, while Aqil's 0.900 comes from 50 bunches and a possibly different r² definition. The like-for-like comparison above replaces it.
 
 ---
 
@@ -279,8 +291,8 @@ Findings:
   - **Depth-to-colour alignment:** accounts for part of it (1.78 → 1.58).
   - **Disturbed frames:** no effect.
   - **Tarp folds:** ruled out; session 1's tarp is flatter near the bunch.
-  - **Colour-only depth:** a monocular depth model (MoGe-2) gives the same direction (2.00 vs 1.20), so the effect is unlikely to be specific to the depth camera.
-  - **Bunch shape or measurement:** session 1 bunches measure about 2 cm taller than their caliper thickness, against 0.3 cm in session 2. This fits spikier bunches or a different caliper protocol, but is not confirmed.
+  - **Colour-only depth:** a monocular depth model (MoGe-2) gives the same direction (2.00 vs 1.20). This is not independent evidence: it used this pipeline's masks and tarp distance, so a mask or reference error would carry through.
+  - **Bunch shape or ground truth:** ruled out. Aqil's manual estimates, which need no fitted gain, show almost no session difference (estimate ÷ truth 1.036 in session 1 and 0.983 in session 2, a ratio of 1.05) on the same bunches and the same displaced volumes, against 1.48 for the tarp-plane volume and 1.15 for the v2 grid. The gap is therefore in these recordings or in the automatic segmentation, not in the bunches or the ground truth. An earlier version attributed it to spikier bunches or a different caliper protocol; that is not supported.
 - **Exploratory lead.** v2 volume plus object height (mass = a·V + b·H) scores 1.04 kg (leave-one-out), 1.17 kg (7/4) and 1.65 kg (4/7). It needs about 7 training bunches and was chosen after seeing the data.
 - **Status.** These comparisons were chosen after inspecting the data and should be treated as exploratory.
 
@@ -325,6 +337,8 @@ Findings:
 | Temporal median over 120 frames | 32 frames in session 2; session 1 includes disturbed frames |
 | FFB18: +10 kg systematic error | v1 overestimated its volume by 10 L; Approach A by 3.2 L |
 | FFB31/FFB17: possible camera-distance issue; FFB32: sparse depth | Distance is 1.55–1.57 m for every bunch; no depth gaps inside any mask |
-| Within 0.014 r² of Aqil's benchmark | Not comparable (Section 7); compare with the caliper baseline instead |
+| Within 0.014 r² of Aqil's benchmark | Not comparable. Scored on the same 10 bunches, this pipeline is +0.15 kg MAE against Aqil, CI −0.36 to +0.68 (Section 7) |
+| Session gap fits spikier bunches or a different caliper protocol | Not supported. Aqil's manual estimates show no session gap on the same bunches, so it lies in these recordings or in the segmentation (Section 9) |
+| MoGe-2 shows the effect is not specific to the depth camera | It used this pipeline's masks and tarp distance, so it is not independent evidence (Section 9) |
 | Shooting distance 1.2–1.5 m | Measured 1.55–1.57 m |
 | GDino/SAM2 fallback used when the depth mask fails | Never triggered in this dataset; session 1 colour was BGR-ordered |
