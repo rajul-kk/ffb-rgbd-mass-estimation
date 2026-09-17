@@ -22,6 +22,11 @@ def clip_depth(depth_m: np.ndarray, z_front: float, z_window: float) -> np.ndarr
     return d
 
 
+def pixel_pitch(K: Intrinsics, depth_m: float) -> float:
+    """Projected xy size of one pixel at depth_m; grid cells finer than this are aliased empty."""
+    return float(depth_m) / K.fx
+
+
 def grid_volume(points: np.ndarray, grid_step: float = 0.002) -> tuple[float, float]:
     """Notebook integral: sum over 2 mm xy cells of (z_ref - min z), z_ref = 95th-percentile depth."""
     if points.shape[0] < 20:

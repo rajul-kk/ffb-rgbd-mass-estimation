@@ -41,3 +41,14 @@ def test_notebook_grid_volume_loses_cells_when_pixels_are_coarser_than_grid():
     grid, z_ref = volume.grid_volume(volume.project(depth, ring, K848))
     assert z_ref == pytest.approx(1.3, abs=1e-6)
     assert grid / reference(1.3, False) < 0.6
+
+
+def test_pixel_pitch_scaled_grid_recovers_most_of_the_loss():
+    depth, hit, _ = synthetic.render(K848, 1.3, **ABC, resting=False)
+    depth = depth.astype(np.float32)
+    ring = np.zeros_like(hit)
+    ys, xs = np.nonzero(hit)
+    ring[ys.min() - 30:ys.max() + 30, xs.min() - 30:xs.max() + 30] = True
+    pitch = volume.pixel_pitch(K848, 1.3)
+    grid, _ = volume.grid_volume(volume.project(depth, ring, K848), grid_step=pitch)
+    assert grid / reference(1.3, False) > 0.9
