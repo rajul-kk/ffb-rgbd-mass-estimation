@@ -40,7 +40,7 @@ Automate the mass estimation of oil palm Fresh Fruit Bunches (FFBs) from a short
   - `True_Density_kg_L` is mass ÷ rounded volume. It is derived, not measured separately.
   - The rounding alone puts a floor of about 0.24 kg under any method's MAE.
   - With exact volumes, a linear fit of mass on displaced volume gives R² 0.982 (MAE 0.44 kg, n = 50). All remaining error is in volume estimation.
-- **Exclusion.** FFB18 is excluded from all metrics because a person is in frame. v1 overestimated its volume by 10 L and Approach A by 3.2 L.
+- **Exclusion.** FFB18 is excluded from all metrics. A person is in frame throughout the recording (a documentation/protocol issue, not a measured cause; the automated mask itself is clean, checked visually against the RGB frame). The real driver is that v2's grid volume undercounts every bunch relative to its actual displaced volume (raw V_grid ÷ actual ranges 31–59% across the other 10 bunches, median ≈45%), and FFB18 is the least undercounted of all 11 (59%, i.e. −41%). The per-session gain is fit to correct the typical ~50–55% shortfall, so it overcorrects FFB18 specifically: v1 overestimated its volume by 10 L and Approach A by 3.2 kg. This is not a small-footprint or grid-aliasing effect — the largest-footprint bunch (FFB10) has one of the largest shortfalls (54%) — so no grid-resolution fix is expected to help. Switching to the tarp-plane volume changes FFB18's error to +56% instead of correcting it, and raised held-out error on the other 9 bunches (Section 9), so it is not a net improvement either.
 - **Camera identity.** The bag metadata reports a RealSense D455 (serial 215122256082), while Aqil's thesis describes a D435i. These may therefore not be his recordings, although the bunch IDs and ground truth match.
 - **Capture protocol.** Aqil's thesis rotates each bunch through four orientations of about 7 s, which fits the 24–32 s session 1 bags. The "disturbances" partway through most recordings are probably these planned rotations rather than noise, so v2's all-frame median blends several poses.
 
@@ -302,7 +302,7 @@ Findings:
 
 | Item | Issue |
 |---|---|
-| FFB18 | Person in frame; excluded from all metrics |
+| FFB18 | Excluded from all metrics: person in frame (protocol issue) and grid volume undercounts this small, compact bunch by ~41% (Section 3) |
 | FFB32 | Largest error; underestimated by every approach; not caused by missing depth |
 | Session effect | Sessions differ in scene, background, bag layout and bunch batch; with 5–6 bunches each, their effects cannot be separated |
 | Ground truth | Displaced volume rounded to whole litres; the density column is derived from it |
