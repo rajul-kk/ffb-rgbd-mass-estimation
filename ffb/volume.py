@@ -27,12 +27,22 @@ def pixel_pitch(K: Intrinsics, depth_m: float) -> float:
     return float(depth_m) / K.fx
 
 
-def grid_volume(points: np.ndarray, grid_step: float = 0.002) -> tuple[float, float]:
-    """Notebook integral: sum over 2 mm xy cells of (z_ref - min z), z_ref = 95th-percentile depth."""
+def ring_z_ref(depth_m: np.ndarray, mask: np.ndarray, K: Intrinsics, percentile: float = 50) -> float | None:
+    """Ground depth from the tarp ring around the mask, not the bunch itself; None if too few ring points."""
+    ring_pts = tarp_points(depth_m, mask, K)
+    if ring_pts.shape[0] < 20:
+        return None
+    return float(np.percentile(ring_pts[:, 2], percentile))
+
+
+def grid_volume(points: np.ndarray, grid_step: float = 0.002, z_ref: float | None = None) -> tuple[float, float]:
+    """Notebook integral: sum over 2 mm xy cells of (z_ref - min z). z_ref defaults to the 95th-percentile depth
+    of `points` (bunch-only, so it can sit above the true tarp); pass a ring-derived z_ref to fix that."""
     if points.shape[0] < 20:
         return 0.0, 0.0
     x, y, z = points.T.astype(np.float64)
-    z_ref = float(np.percentile(z, 95))
+    if z_ref is None:
+        z_ref = float(np.percentile(z, 95))
     xi = np.floor((x - x.min()) / grid_step).astype(np.int32)
     yi = np.floor((y - y.min()) / grid_step).astype(np.int32)
     ny = int(yi.max()) + 1

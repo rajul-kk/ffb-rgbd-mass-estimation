@@ -39,8 +39,13 @@ def measure(bundle, K, cfg: FusionConfig, cache):
         v_grid, z_ref = volume.grid_volume(volume.project(clipped, mask, K))
         pitch = max(0.002, volume.pixel_pitch(K, z_front + z_window))
         v_grid_pitch, _ = volume.grid_volume(volume.project(clipped, mask, K), grid_step=pitch)
+        ring_ref = volume.ring_z_ref(fused, mask, K)
+        v_grid_ring = volume.grid_volume(volume.project(clipped, mask, K), z_ref=ring_ref)[0] if ring_ref else np.nan
+        v_grid_ring_pitch = (volume.grid_volume(volume.project(clipped, mask, K), grid_step=pitch, z_ref=ring_ref)[0]
+                              if ring_ref else np.nan)
         row.update(V_grid=v_grid, z_ref=z_ref, V_frustum=volume.frustum_volume(clipped, mask, K, z_ref),
                    V_grid_pitch=v_grid_pitch, grid_pitch_mm=1000 * pitch,
+                   V_grid_ring=v_grid_ring, V_grid_ring_pitch=v_grid_ring_pitch, ring_z_ref=ring_ref,
                    mask_px=int(mask.sum()), mask_holes=float((fused[mask] <= 0).mean()))
         try:
             n, d, rmse = volume.fit_plane(volume.tarp_points(fused, mask, K))
