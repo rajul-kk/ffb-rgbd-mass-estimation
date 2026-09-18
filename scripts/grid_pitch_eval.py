@@ -14,7 +14,8 @@ from ffb.fusion import FusionConfig  # noqa: E402
 FUSIONS = {"notebook": FusionConfig(reader="notebook", spatial="blur_then_mask"),
            "nan_blur": FusionConfig(reader="fixed", spatial="mask_then_nanmedian")}
 STEPS = [("S0_notebook", "notebook", "V_grid"), ("S2_nan_blur", "nan_blur", "V_grid"),
-         ("S2b_pitch_grid", "nan_blur", "V_grid_pitch")]
+         ("S2b_pitch_grid", "nan_blur", "V_grid_pitch"), ("S2c_ring_zref", "nan_blur", "V_grid_ring"),
+         ("S2d_ring_zref_pitch", "nan_blur", "V_grid_ring_pitch")]
 
 
 def main():

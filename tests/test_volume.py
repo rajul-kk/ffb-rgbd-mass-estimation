@@ -52,3 +52,20 @@ def test_pixel_pitch_scaled_grid_recovers_most_of_the_loss():
     pitch = volume.pixel_pitch(K848, 1.3)
     grid, _ = volume.grid_volume(volume.project(depth, ring, K848), grid_step=pitch)
     assert grid / reference(1.3, False) > 0.9
+
+
+@pytest.mark.parametrize("K", [K848, K1280], ids=["848", "1280"])
+def test_ring_z_ref_finds_the_true_tarp_depth(K):
+    depth, hit, _ = synthetic.render(K, 1.3, **ABC, resting=False, crop=False)
+    assert volume.ring_z_ref(depth.astype(np.float32), hit, K) == pytest.approx(1.3, abs=1e-3)
+
+
+@pytest.mark.parametrize("K", [K848, K1280], ids=["848", "1280"])
+def test_ring_z_ref_plus_pitch_grid_recovers_most_of_the_volume(K):
+    depth, hit, Kc = synthetic.render(K, 1.3, **ABC, resting=False, crop=False)
+    depth = depth.astype(np.float32)
+    true_vol = volume.frustum_volume(depth, hit, Kc, 1.3)
+    z_ref = volume.ring_z_ref(depth, hit, K)
+    pitch = volume.pixel_pitch(K, 1.3)
+    grid, _ = volume.grid_volume(volume.project(depth, hit, K), grid_step=pitch, z_ref=z_ref)
+    assert grid / true_vol > 0.9
