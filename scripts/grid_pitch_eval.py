@@ -18,6 +18,18 @@ STEPS = [("S0_notebook", "notebook", "V_grid"), ("S2_nan_blur", "nan_blur", "V_g
          ("S2d_ring_zref_pitch", "nan_blur", "V_grid_ring_pitch")]
 
 
+DENSITY = 0.95628  # kg/L, Aqil's mean over his 50 bunches; not fit to any bunch in this dataset
+
+
+def zero_fit_mae(vol, gt, col):
+    """MAE of density * volume with no parameter fit to our own masses; excludes FFB18 like everywhere else."""
+    df = vol[vol.fusion == "nan_blur"].set_index("ffb")
+    pred = DENSITY * df[col] * 1000
+    actual = gt.loc[df.index, "Actual_Mass_kg"]
+    err = (pred - actual).drop(index=ex.EXCLUDED, errors="ignore")
+    return float(err.abs().mean())
+
+
 def main():
     out = ROOT / "results"
     gt = ex.ground_truth(ROOT)
@@ -30,8 +42,11 @@ def main():
     with pd.option_context(*[x for kv in pd_opts.items() for x in kv]):
         print(t.pivot_table(index=["model", "step"], columns="scheme", values="mae",
                              aggfunc="first").round(2).to_string())
+    zero_fit = {col: round(zero_fit_mae(vol, gt, col), 2) for col in ("V_grid", "V_grid_pitch", "V_grid_ring_pitch")}
+    print("zero-fit density*volume MAE (n=10, no parameter fit to our masses):", zero_fit)
     (out / "grid_pitch_summary.json").write_text(json.dumps(
-        {"note": "isolated pixel-pitch grid check, not part of the pre-registered cpu_eval steps"}, indent=2))
+        {"note": "isolated pixel-pitch/ring-z_ref grid checks, not part of the pre-registered cpu_eval steps",
+         "zero_fit_density_mae_kg": zero_fit, "density_kg_l": DENSITY}, indent=2))
 
 
 if __name__ == "__main__":
