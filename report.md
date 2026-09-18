@@ -230,8 +230,6 @@ The last step was previously described as the largest gain. Held out, it is no b
 
 ## 7. Comparison to related work
 
-| System | n | MAE | 1 − MAPE | r² | Notes |
-|---|---|---|---|---|---|
 Both comparison systems used the same ground truth, so they can be scored on the same bunches. Aqil's per-bunch estimates come from his Appendix Tables C and D; Group 2's from their Figure A6, read off the chart.
 
 **Same 10 bunches (FFB18 excluded).**
@@ -246,6 +244,16 @@ Both comparison systems used the same ground truth, so they can be scored on the
 Paired difference, this pipeline minus Aqil: **+0.15 kg (95% CI −0.36 to +0.68)** with one gain, +0.20 kg (−0.58 to +0.99) with per-session gains. The two are indistinguishable on this sample. Aqil's own headline is better than either (MAE 1.15 kg, MAPE 8.8%, Pearson r² 0.902 over all 50 bunches; 1.17 kg and 6.6% on his 10 validation bunches), but those sets include easier bunches. Beating it would need roughly 0.45 kg lower MAE, which 10 bunches cannot demonstrate (Section 5.5).
 
 **Group 2 (YOLOv8 + PCA ellipsoid), same 5 session-1 bunches.** Their headline 73% is the mean of (1 − |error| ÷ actual) over 6 bunches, including the excluded FFB18, with an empirical scale factor whose fitting set is not stated; their own report also describes the 73% as a projected goal. On FFB10, 11, 12, 17 and 19 their medians give MAE 4.4 kg and MAPE 25.6%, against 1.57 kg and 9.6% for this pipeline (leave-one-out, one gain) and about 1.6 kg and 10% for Aqil. Their errors change sign between bunches (+3.5 to +4.6 kg on the three largest, −8.2 kg on FFB19), so a single scale factor cannot correct them.
+
+**Calibration, compared across all three.** All three methods correct for the same underlying problem — a single top-down view understates a bunch's true volume — but differ in how openly that correction is made:
+
+| | Density | Volume correction | Fitted to held-out ground truth? |
+|---|---|---|---|
+| Aqil | One constant (956.28 kg/m³) over all 50 bunches | None; his 2.5D volume is not corrected by a fitted factor | No fitted parameter at all |
+| This pipeline | One or two gains (2.25 / 2.53), fit by least squares | The gain itself, folded into one number (Section 9) | Yes — leave-one-out, 4/7, 7/4 (Section 5) |
+| Group 2 | Same constant as Aqil, applied uniformly | An unstated "empirical scaling factor" (their Section VI) | Not stated; no held-out check reported |
+
+Group 2's own limitations section attributes their error to "reliance on a constant density assumption" and recommends, as future work, "moving beyond a constant density assumption" toward "a data-driven regression model trained on a larger dataset" — a fitted, per-setup correction similar in spirit to the gain used here, but they did not build or evaluate one. So this pipeline's calibration is more transparent and held-out validated than either alternative, but it is also the only one of the three that needs two different numbers for what is nominally the same measurement — itself a symptom of the two uncorrected mechanisms in Section 9, not a genuine physical difference between the sessions.
 
 The previous version stated that the pipeline was within 0.014 r² of Aqil's benchmark. The two figures are not comparable: the 0.886 was a per-bunch mean over 2,100 cross-validation predictions on 10 bunches, while Aqil's 0.900 comes from 50 bunches and a possibly different r² definition. The like-for-like comparison above replaces it.
 
@@ -296,6 +304,16 @@ Findings:
 
   In session 1, `z_ref` never reaches the tarp — it is the percentile of bunch-only points, so it sits partway up the bunch instead of at the ground, and height is undercounted by however far short it falls. FFB18 has the smallest gap of the six (11.4 cm), which is why it is the least undercounted bunch overall (Section 3) and why the session gain, fit to the typical 50–55% shortfall, overcorrects it. In session 2, `z_ref` already sits at the tarp, yet the undercount persists: the native 848-wide depth has a pixel pitch of ≈3.6 mm at this distance, coarser than the fixed 2 mm grid cell, so a sweep of grid cell size (1.5–10 mm) confirms many cells are empty and silently dropped regardless of bunch size. Neither is a small-footprint effect — the largest-footprint bunch (FFB10) has one of the largest shortfalls.
 - **Two targeted fixes, tested and rejected.** Each diagnosis above suggests an obvious fix — a grid cell size tied to the pixel pitch (`pixel_pitch`), and a `z_ref` taken from a ring of tarp points around the mask instead of the mask's own percentile (`ring_z_ref`) — and both were validated on synthetic data first, recovering >90% and the true tarp depth (±1 mm) respectively. Neither beats v2 held-out on the real bunches. The pitch-matched grid cell is clearly worse (LOO 3.25–6.47 kg): real depth noise means a bigger cell more often catches a spurious near-outlier as the cell's surface height, and this dominates over the aliasing it fixes. The ring-based `z_ref` is closer — LOO 1.86 kg with per-session gains refit to it, against v2's 1.65 kg, not statistically distinguishable (paired diff +0.21 kg, 95% CI −0.97 to +1.43) — but it overshoots session 1 by 10–64% instead of landing near the true volume, because a real mask's boundary isn't the clean dome the synthetic check used. This is the fourth independently validated geometry fix (after the grid-free and tarp-plane volumes above) to fail this bar. The consistent pattern across all four is evidence that, with 11 bunches split 6/5 across two sessions, no volume-method fix can be shown to help — not that v2's calibration is secretly correct.
+- **How much of the session gain is real physics versus curve-fitting?** To test this without leaking our own mass values into the answer, mass was predicted as density (956.28 kg/m³, Aqil's external constant, not fit to our 11 bunches) times volume, with zero parameters fit to our data at any stage:
+
+  | Volume used | Correction applied | MAE, n = 10, zero fit to our masses |
+  |---|---|---|
+  | Plain v2 grid | none | 8.98 kg |
+  | + pitch-matched cell | session-2 mechanism only | 6.54 kg |
+  | + ring-based `z_ref` | both mechanisms | 4.52 kg |
+  | v2's fitted per-session gain | — | **1.65 kg** |
+
+  Each confirmed mechanism moves the zero-fit model in the right direction, which is independent evidence the two diagnoses above are real. But even with both applied and an external density, the zero-fit model is still 2.7× worse than the fitted gain. So roughly half of what the gain corrects for is explained, physically, by the two mechanisms found here; the remaining half is either genuine per-bunch density variation (the 50-bunch ground truth spans about 0.85–1.05 kg/L) or a further systematic error not yet identified — this dataset cannot distinguish the two. The gain is therefore partly principled and partly an unexplained fit to 11 bunches; closing that remainder needs more data, not more geometry fixes.
 - **Session difference.** With the tarp-plane volume, volume above the tarp ÷ displaced volume is **1.58 in session 1 and 1.07 in session 2**. This 1.5× difference is the dominant remaining error. What was tested:
   - **Depth-to-colour alignment:** accounts for part of it (1.78 → 1.58).
   - **Disturbed frames:** no effect.

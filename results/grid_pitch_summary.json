@@ -1,3 +1,9 @@
 {
-  "note": "isolated pixel-pitch grid check, not part of the pre-registered cpu_eval steps"
+  "note": "isolated pixel-pitch/ring-z_ref grid checks, not part of the pre-registered cpu_eval steps",
+  "zero_fit_density_mae_kg": {
+    "V_grid": 8.98,
+    "V_grid_pitch": 6.54,
+    "V_grid_ring_pitch": 4.52
+  },
+  "density_kg_l": 0.95628
 }
