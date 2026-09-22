@@ -100,7 +100,10 @@ def extract_mask(fused, rgb, width: int, fallback: Optional[Callable] = None):
     """Approach A mask rules; returns (mask or None, z_front, z_window, source)."""
     s_min, v_max = border_hsv_stats(rgb)
     fg, _, margin = depth_foreground_mask(fused, rgb=rgb, colour_s_min=s_min, colour_v_max=v_max)
-    z_front = float(np.percentile(fused[fused > 0.1], 5))
+    valid_depth = fused[fused > 0.1]
+    if valid_depth.size == 0:
+        return None, None, None, "failed"
+    z_front = float(np.percentile(valid_depth, 5))
     if fg is not None:
         z_window = float(margin) + 0.05
         if width != 848:
