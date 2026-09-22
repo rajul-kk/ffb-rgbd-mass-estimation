@@ -43,6 +43,23 @@ def test_notebook_grid_volume_loses_cells_when_pixels_are_coarser_than_grid():
     assert grid / reference(1.3, False) < 0.6
 
 
+def test_fill_radius_recovers_aliasing_loss_without_extending_past_the_mask():
+    depth, hit, _ = synthetic.render(K848, 1.3, **ABC, resting=False)
+    depth = depth.astype(np.float32)
+    ring = np.zeros_like(hit)
+    ys, xs = np.nonzero(hit)
+    ring[ys.min() - 30:ys.max() + 30, xs.min() - 30:xs.max() + 30] = True
+    grid, _ = volume.grid_volume(volume.project(depth, ring, K848), fill_radius=3)
+    assert grid / reference(1.3, False) > 0.9
+    # a large hole in the middle of the mask must stay a hole, not be filled from its rim
+    holed = hit.copy()
+    ys, xs = np.nonzero(hit)
+    cy, cx = int(ys.mean()), int(xs.mean())
+    holed[cy - 15:cy + 15, cx - 15:cx + 15] = False
+    grid_holed, _ = volume.grid_volume(volume.project(depth, holed, K848), fill_radius=3)
+    assert grid_holed < 0.9 * reference(1.3, False)
+
+
 def test_pixel_pitch_scaled_grid_recovers_most_of_the_loss():
     depth, hit, _ = synthetic.render(K848, 1.3, **ABC, resting=False)
     depth = depth.astype(np.float32)

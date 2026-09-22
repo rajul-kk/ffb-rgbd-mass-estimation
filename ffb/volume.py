@@ -35,9 +35,12 @@ def ring_z_ref(depth_m: np.ndarray, mask: np.ndarray, K: Intrinsics, percentile:
     return float(np.percentile(ring_pts[:, 2], percentile))
 
 
-def grid_volume(points: np.ndarray, grid_step: float = 0.002, z_ref: float | None = None) -> tuple[float, float]:
+def grid_volume(points: np.ndarray, grid_step: float = 0.002, z_ref: float | None = None,
+                 fill_radius: int = 0) -> tuple[float, float]:
     """Notebook integral: sum over 2 mm xy cells of (z_ref - min z). z_ref defaults to the 95th-percentile depth
-    of `points` (bunch-only, so it can sit above the true tarp); pass a ring-derived z_ref to fix that."""
+    of `points` (bunch-only, so it can sit above the true tarp); pass a ring-derived z_ref to fix that.
+    fill_radius > 0 fills empty cells from their nearest filled neighbour (CloudCompare's own 2.5D volume
+    approach), capped at that many cells away so it patches aliasing gaps, not real occlusion."""
     if points.shape[0] < 20:
         return 0.0, 0.0
     x, y, z = points.T.astype(np.float64)
@@ -45,10 +48,17 @@ def grid_volume(points: np.ndarray, grid_step: float = 0.002, z_ref: float | Non
         z_ref = float(np.percentile(z, 95))
     xi = np.floor((x - x.min()) / grid_step).astype(np.int32)
     yi = np.floor((y - y.min()) / grid_step).astype(np.int32)
-    ny = int(yi.max()) + 1
-    z_top = np.full((int(xi.max()) + 1) * ny, z_ref, dtype=np.float64)
+    nx, ny = int(xi.max()) + 1, int(yi.max()) + 1
+    z_top = np.full(nx * ny, z_ref, dtype=np.float64)
     np.minimum.at(z_top, xi * ny + yi, z)
     has = z_top < z_ref - 1e-4
+    if fill_radius > 0 and not has.all():
+        from scipy.ndimage import distance_transform_edt
+        grid, has2d = z_top.reshape(nx, ny), has.reshape(nx, ny)
+        dist, idx = distance_transform_edt(~has2d, return_indices=True)
+        filled = grid[tuple(idx)]
+        grid = np.where((~has2d) & (dist <= fill_radius), filled, grid)
+        z_top, has = grid.ravel(), (grid.ravel() < z_ref - 1e-4)
     return float(np.sum(z_ref - z_top[has]) * grid_step ** 2), z_ref
 
 

@@ -15,7 +15,7 @@ FUSIONS = {"notebook": FusionConfig(reader="notebook", spatial="blur_then_mask")
            "nan_blur": FusionConfig(reader="fixed", spatial="mask_then_nanmedian")}
 STEPS = [("S0_notebook", "notebook", "V_grid"), ("S2_nan_blur", "nan_blur", "V_grid"),
          ("S2b_pitch_grid", "nan_blur", "V_grid_pitch"), ("S2c_ring_zref", "nan_blur", "V_grid_ring"),
-         ("S2d_ring_zref_pitch", "nan_blur", "V_grid_ring_pitch")]
+         ("S2d_ring_zref_pitch", "nan_blur", "V_grid_ring_pitch"), ("S2e_fill_radius", "nan_blur", "V_grid_fill")]
 
 
 DENSITY = 0.95628  # kg/L, Aqil's mean over his 50 bunches; not fit to any bunch in this dataset

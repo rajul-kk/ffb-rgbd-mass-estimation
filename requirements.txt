@@ -4,4 +4,5 @@ opencv-python==4.13.0.90
 pandas==2.3.3
 pyrealsense2==2.58.1.10581
 pytest==9.0.2
+scipy==1.15.3
 # Optional SAM 3: transformers>=5, torch, pillow, and approved access to facebook/sam3
