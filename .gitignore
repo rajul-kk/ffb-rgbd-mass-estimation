@@ -29,3 +29,6 @@ __pycache__/
 
 # Optional model environment (MoGe-2, SAM 3)
 .venv-models/
+
+# Third-party theses (kept locally, not redistributed)
+*.pdf
