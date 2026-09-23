@@ -28,3 +28,21 @@ def test_plane_volume_matches_frustum_volume_on_flat_tarp():
     v_plane, height, _ = volume.plane_volume(depth, hit, K, plane)
     assert v_plane == pytest.approx(volume.frustum_volume(depth, hit, K, 1.3), rel=1e-4)
     assert height == pytest.approx(0.26, abs=0.02)
+
+
+def test_msac_lo_fit_matches_count_ransac_with_one_sided_debris():
+    errs = {False: [], True: []}
+    for trial in range(10):
+        rng = np.random.default_rng(trial)
+        nt = rng.normal([0, 0, -1], [0.08, 0.08, 0])
+        nt /= np.linalg.norm(nt)
+        dt = -1.55 * nt[2]
+        xy = rng.uniform(-0.5, 0.5, (6000, 2))
+        z = -(nt[0] * xy[:, 0] + nt[1] * xy[:, 1] + dt) / nt[2]
+        pts = np.column_stack([xy, z + rng.normal(0, 0.004, len(z))])
+        up = rng.random(len(z)) < 0.4
+        pts[up, 2] -= rng.uniform(0.01, 0.3, up.sum())
+        for robust in errs:
+            n, d, _ = volume.fit_plane(pts, robust=robust)
+            errs[robust].append(abs(-d / n[2] + dt / nt[2]))
+    assert max(errs[True]) < 0.001 and max(errs[False]) < 0.001  # both sub-millimetre; neither reliably wins

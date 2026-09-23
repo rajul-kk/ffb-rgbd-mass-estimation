@@ -119,3 +119,36 @@ def extract_mask(fused, rgb, width: int, fallback: Optional[Callable] = None):
     if mask.shape != (dh, dw):
         mask = cv2.resize(mask.astype(np.uint8), (dw, dh), interpolation=cv2.INTER_NEAREST).astype(bool)
     return mask, z_front, 0.25, "semantic"
+
+
+def plane_height_mask(fused, K, h_min=0.03, band=0.03, min_area_frac=0.003, max_area_frac=0.35, robust=False):
+    """Depth-only mask: pixels more than h_min above a RANSAC plane fit to the dominant far surface (the tarp).
+    Needs no colour, so it works when RGB is unregistered or recorded at a different time. Returns (mask, plane)."""
+    from . import volume
+    valid = (fused > 0.1) & (fused < 10.0)
+    if not valid.any():
+        return None, None
+    H, W = fused.shape
+    centre = np.zeros_like(valid)
+    centre[H // 4:3 * H // 4, W // 4:3 * W // 4] = True
+    z = fused[valid & centre]  # the tarp dominates the central half of the frame in this protocol
+    if z.size < 200:
+        return None, None
+    hist, edges = np.histogram(z, bins=np.arange(z.min(), z.max() + 0.02, 0.01))
+    z_tarp = float(edges[np.argmax(hist)] + 0.005)
+    n, d, _ = volume.fit_plane(volume.project(fused, valid & (np.abs(fused - z_tarp) < band), K), robust=robust)
+    h = np.zeros_like(fused, dtype=np.float64)
+    pts = volume.project(fused, valid, K).astype(np.float64)
+    h[valid] = pts @ n + d
+    fg = (valid & (h > h_min)).astype(np.uint8)
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
+    fg = cv2.morphologyEx(cv2.morphologyEx(fg, cv2.MORPH_CLOSE, k), cv2.MORPH_OPEN, k)
+    n_lab, lab, st, cen = cv2.connectedComponentsWithStats(fg)
+    ok = [i for i in range(1, n_lab) if min_area_frac * H * W < st[i, 4] < max_area_frac * H * W]
+    if not ok:
+        return None, (n, d)
+    best = min(ok, key=lambda i: np.hypot(cen[i][0] - W / 2, cen[i][1] - H / 2))
+    if np.hypot(cen[best][0] - W / 2, cen[best][1] - H / 2) > 0.75 * np.hypot(W / 2, H / 2):
+        return None, (n, d)
+    mask = lab == best
+    return cv2.morphologyEx(mask.astype(np.uint8), cv2.MORPH_CLOSE, k).astype(bool), (n, d)

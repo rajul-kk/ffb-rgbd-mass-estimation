@@ -118,3 +118,29 @@ def test_extract_mask_fails_cleanly_with_no_valid_depth_anywhere():
     mask, z_front, z_window, source = segment.extract_mask(depth, rgb, width=1280, fallback=fallback)
     assert mask is None and z_front is None and source == "failed"
     assert "ran" not in called  # no usable depth means no usable volume either way; fallback is skipped
+
+
+def test_plane_height_mask_finds_the_bunch_without_colour():
+    from ffb import synthetic
+    from ffb.camera import Intrinsics
+    K = Intrinsics(432.1, 432.1, 424.0, 240.0, 848, 480)
+    depth, hit, _ = synthetic.render(K, 1.55, a=0.17, b=0.20, c=0.13, resting=False)
+    mask, (n, d) = segment.plane_height_mask(depth.astype(np.float32), K)
+    assert iou(mask, hit) > 0.85
+    assert -d / n[2] == pytest.approx(1.55, abs=0.003)
+
+
+def test_plane_height_mask_ignores_an_rgb_shift_by_construction():
+    # the session 2 failure: colour recorded minutes apart and unregistered; this mask never reads colour
+    from ffb import synthetic
+    from ffb.camera import Intrinsics
+    K = Intrinsics(432.1, 432.1, 424.0, 240.0, 848, 480)
+    depth, hit, _ = synthetic.render(K, 1.55, a=0.17, b=0.20, c=0.13, resting=False)
+    m1, _ = segment.plane_height_mask(depth.astype(np.float32), K)
+    assert m1 is not None and m1.sum() > 0.85 * hit.sum()
+
+
+def test_plane_height_mask_none_without_valid_depth():
+    from ffb.camera import Intrinsics
+    K = Intrinsics(432.1, 432.1, 424.0, 240.0, 848, 480)
+    assert segment.plane_height_mask(np.zeros((480, 848), np.float32), K) == (None, None)

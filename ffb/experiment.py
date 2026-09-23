@@ -56,6 +56,14 @@ def measure(bundle, K, cfg: FusionConfig, cache):
                        tilt_deg=float(np.degrees(np.arccos(abs(n[2])))), plane_rmse_mm=1000 * rmse)
         except ValueError as e:
             row["plane_error"] = str(e)
+    try:
+        ph, plane = segment.plane_height_mask(fused, K)
+        if ph is not None:
+            v, h, a = volume.plane_volume(fused, ph, K, plane)
+            row.update(V_plane_ph=v, H_ph=h, area_ph=a, mask_px_ph=int(ph.sum()),
+                       V_grid_ph=volume.grid_volume(volume.project(fused, ph, K), z_ref=volume.ring_z_ref(fused, ph, K))[0])
+    except ValueError as e:
+        row["ph_error"] = str(e)
     row["seconds"] = round(time.time() - t0, 1)
     return row, mask, rgb, fused
 

@@ -82,44 +82,56 @@ def plane_depth(plane, K: Intrinsics, shape) -> np.ndarray:
     return z
 
 
-def fit_plane(points: np.ndarray, thresh: float = 0.01, iters: int = 500, seed: int = 0):
-    """RANSAC plane refit by SVD on inliers; normal faces the camera. Returns (n, d, inlier rmse m)."""
+def fit_plane(points: np.ndarray, thresh: float = 0.01, iters: int = 500, seed: int = 0, robust: bool = False):
+    """RANSAC plane refit by SVD on inliers; normal faces the camera. Returns (n, d, inlier rmse m).
+    robust=True scores hypotheses by MSAC (truncated squared residuals) and adds LO-RANSAC refits."""
     rng = np.random.default_rng(seed)
     P = points.astype(np.float64)
     if len(P) < 100:
         raise ValueError(f"only {len(P)} points for plane fit")
     if len(P) > 30000:
         P = P[rng.choice(len(P), 30000, replace=False)]
-    best = None
+    best, best_cost = None, np.inf
     for _ in range(iters):
         a, b, c = P[rng.choice(len(P), 3, replace=False)]
         n = np.cross(b - a, c - a)
         norm = np.linalg.norm(n)
         if norm < 1e-12:
             continue
-        inliers = np.abs((P - a) @ (n / norm)) < thresh
-        if best is None or inliers.sum() > best.sum():
-            best = inliers
+        r = np.abs((P - a) @ (n / norm))
+        cost = float((np.minimum(r, thresh) ** 2).sum()) if robust else -float((r < thresh).sum())
+        if cost < best_cost:
+            best, best_cost = r < thresh, cost
+    if best is None:
+        raise ValueError("plane fit: every sampled triplet was collinear")
     Q = P[best]
     centroid = Q.mean(0)
     n = np.linalg.svd(Q - centroid, full_matrices=False)[2][-1]
+    for _ in range(3 if robust else 0):
+        Q = P[np.abs((P - centroid) @ n) < thresh]
+        centroid = Q.mean(0)
+        n = np.linalg.svd(Q - centroid, full_matrices=False)[2][-1]
     if n[2] > 0:
         n = -n
     d = -float(n @ centroid)
     return n, d, float(np.sqrt(np.mean((Q @ n + d) ** 2)))
 
 
-def tarp_points(depth_m: np.ndarray, mask: np.ndarray, K: Intrinsics, grow: float = 0.5, gap_px: int = 15):
-    """Valid points inside the mask's enlarged bounding box but outside the dilated mask."""
-    h, w = depth_m.shape
+def ring_mask(mask: np.ndarray, grow: float = 0.5, gap_px: int = 15) -> np.ndarray:
+    """Pixels inside the mask's enlarged bounding box but outside the dilated mask."""
+    h, w = mask.shape
     ys, xs = np.nonzero(mask)
     bh, bw = ys.max() - ys.min(), xs.max() - xs.min()
     ring = np.zeros_like(mask, dtype=bool)
     ring[max(0, int(ys.min() - grow * bh)):min(h, int(ys.max() + grow * bh) + 1),
          max(0, int(xs.min() - grow * bw)):min(w, int(xs.max() + grow * bw) + 1)] = True
     k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * gap_px + 1, 2 * gap_px + 1))
-    ring &= ~cv2.dilate(mask.astype(np.uint8), k).astype(bool)
-    return project(depth_m, ring, K)
+    return ring & ~cv2.dilate(mask.astype(np.uint8), k).astype(bool)
+
+
+def tarp_points(depth_m: np.ndarray, mask: np.ndarray, K: Intrinsics, grow: float = 0.5, gap_px: int = 15):
+    """Valid points in the tarp ring around the mask."""
+    return project(depth_m, ring_mask(mask, grow, gap_px), K)
 
 
 def plane_volume(depth_m: np.ndarray, mask: np.ndarray, K: Intrinsics, plane):
