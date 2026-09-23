@@ -142,11 +142,26 @@ Both 3 cm thresholds were fixed before any held-out run.
   - In session 1 the depth-only mask is slightly larger than v2's, adding the fringe that v2's colour test dropped.
   - FFB12's mask includes a thin tail, either the stalk or a tarp fold more than 3 cm high. It may add volume that isn't bunch.
 
+### Session 1: steady frames and unaligned depth
+
+In every session 1 bag the bunch is steady only for the first 21–35 frames, then keeps moving to the end; v2's median blends 42–78% moving frames. Session 2's reader stopped at frame 32, inside its steady opening. Two candidates were fixed before running (`scripts/session1_eval.py`, `results/session1_*`), both with the depth-only mask and the existing steady-frame detector:
+
+| Held-out MAE (kg), one gain | LOO | 4/7 | 7/4 | Session 1 | Session 2 |
+|---|---|---|---|---|---|
+| All frames (above) | 1.13 | 1.20 | 1.14 | 1.57 | 0.68 |
+| Steady frames | 1.04 | 1.11 | 1.04 | 1.33 | 0.76 |
+| **Steady frames + unaligned depth** | **0.99** | **1.08** | **1.00** | **1.35** | **0.62** |
+
+- **The gain comes from FFB12 and FFB19,** the bunches whose medians had blended motion. Steady frames + unaligned depth beats all frames by 0.14 kg (LOO, one gain; 95% CI −0.30 to −0.02). With colour no longer used, unaligned depth also lets both sessions be processed identically.
+- **FFB11 and FFB17 stay about 2.1 kg over** in every variant. From above they look larger than they are (volume above the tarp 2.2× displaced volume, against 1.7–2.0× for the others). Aqil gets them nearly right, probably because he averages four orientations. The session 1 bags contain only one steady pose, so no pose averaging is possible here.
+- **Cloth folds are ruled out.** Thin appendages, FFB12's tail included, hold under 0.1% of volume.
+
 ### Caveats
 
 - **Found by inspecting this data.** The bug was found by looking at this data, so the result is exploratory.
 - **One post-hoc change.** The tarp search was changed once after the first held-out run. It had located the tarp relative to the 5th-percentile depth, which fails when the bunch fills under 5% of the frame; a synthetic test exposed this. The change moved one-gain LOO from 1.37 to 1.13 kg.
-- **Recommendation:** fix the method as it stands and test it on new bunches.
+- **Two more candidates.** The session 1 variants were two further candidates stacked on this method.
+- **Recommendation:** fix the method as it stands (depth-only mask, steady frames, unaligned depth, one gain) and test it on new bunches.
 
 ---
 
@@ -241,7 +256,7 @@ The two mechanisms explain about half of what the gain corrects.
 
 ## 9. Recommendations for new data
 
-1. **Pre-register the model.** Fix the depth-only mask (3 cm height, 3 cm band, one gain) as the primary model before looking at new results. Report LOO and repeated splits with confidence intervals.
+1. **Pre-register the model.** Fix the depth-only mask (3 cm height, 3 cm band), steady frames, unaligned depth and one gain as the primary model before looking at new results. Report LOO and repeated splits with confidence intervals.
 2. **Record 25–30 bunches in one setup:** same background, camera height and bag layout. Record depth and colour together (one bag, aligned) if colour is needed at all.
 3. **Keep the scene still** for the first ~5 s of each recording, then do any rotations. Set RealSense depth units to 100 µm.
 4. **Include a known-volume object** in some recordings to check the geometry independently of bunch ground truth.

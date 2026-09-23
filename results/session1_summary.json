@@ -1,0 +1,24 @@
+{
+  "mae_by_session": {
+    "all_frames": {
+      "combined": 1.573,
+      "split": 0.679
+    },
+    "A_steady": {
+      "combined": 1.328,
+      "split": 0.758
+    },
+    "B_steady_native": {
+      "combined": 1.353,
+      "split": 0.619
+    }
+  },
+  "ratio_spread": {
+    "A_steady:combined": 0.199,
+    "A_steady:split": 0.095,
+    "B_steady_native:combined": 0.198,
+    "B_steady_native:split": 0.095,
+    "all_frames:combined": 0.211,
+    "all_frames:split": 0.091
+  }
+}

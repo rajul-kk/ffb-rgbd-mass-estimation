@@ -12,6 +12,7 @@ Held out: each bunch is predicted from a gain fitted on the other bunches. 10 bu
 |---|---|---|---|---|
 | v2 (depth ∩ colour mask, 2.5D grid) | 1.60 kg | 1.66 kg | 1.59 kg | 11.8% |
 | **Depth-only mask (exploratory)** | **1.13 kg** | **1.20 kg** | **1.14 kg** | **7.9%** |
+| **+ steady frames, unaligned depth** | **0.99 kg** | **1.08 kg** | **1.00 kg** | — |
 | Aqil, manual CloudCompare (same bunches) | 1.45 kg | — | — | 9.9% |
 | Caliper ellipsoid, fitted on 40 other bunches | 1.67 kg | — | — | 10.7% |
 
@@ -29,6 +30,7 @@ python -m pytest                      # 55 tests
 python scripts/cpu_eval.py            # v2 reproduced on CPU + fix ladder (report §7)
 python scripts/grid_pitch_eval.py     # rejected grid-volume fixes (report §7)
 python scripts/plane_mask_eval.py     # depth-only mask: held-out, threshold sweep, vs Aqil (report §5–6)
+python scripts/session1_eval.py       # steady frames and unaligned depth (report §5)
 python scripts/make_v4_notebook.py && jupyter nbconvert --to notebook --execute --inplace notebooks/ffb_pipeline_v4.ipynb
 ```
 
