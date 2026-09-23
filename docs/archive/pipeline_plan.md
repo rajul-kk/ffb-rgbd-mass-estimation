@@ -1,3 +1,5 @@
+> Superseded by [report.md](../../report.md); kept as a record of the original plan.
+
 # Zero-Shot 3D FFB Mass Estimation — Project Plan
 
 ## 1. Problem Statement

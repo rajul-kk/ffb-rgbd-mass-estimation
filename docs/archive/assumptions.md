@@ -1,3 +1,5 @@
+> Superseded by [report.md](../../report.md); kept as a record of the original plan.
+
 # Pipeline Assumptions & Manually-Tuned Parameters
 
 Parameters that are dataset-specific or empirically fitted. Each one that breaks
