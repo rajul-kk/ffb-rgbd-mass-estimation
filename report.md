@@ -332,7 +332,7 @@ Findings:
 
 **The fix.** `segment.plane_height_mask` never reads colour. It finds the tarp as the modal depth in the central half of the frame, fits a plane to pixels within 3 cm of it (RANSAC), keeps pixels more than 3 cm above the plane, and takes the central connected component. Volume is the frustum volume above the same plane.
 
-**Results** (`scripts/plane_mask_eval.py`, `results/plane_mask_*.csv`; FFB18 excluded from scoring):
+**Results** (`scripts/plane_mask_eval.py` and `notebooks/ffb_pipeline_v4.ipynb`, which reproduce each other; `results/plane_mask_*.csv`, `results/v4/`; FFB18 excluded from scoring):
 
 | | One gain: LOO | 4/7 | 7/4 | Per-session: LOO | 4/7 | 7/4 |
 |---|---|---|---|---|---|---|
@@ -347,6 +347,7 @@ Findings:
 - **Calibration becomes more physical.** Gains are 0.50 (session 1) and 0.53 (session 2) kg/L, within 7% of each other; one gain (0.51 kg/L) does as well as two. The factor of about 1.9 between density (≈0.96 kg/L) and the gain is the expected overstatement of a top-down view of a resting, spiky bunch (a resting ellipsoid alone gives 1.33×, Section 9).
 - **Threshold sensitivity** (`results/plane_mask_sweep.csv`). With a height threshold of 3–5 cm and a tarp band of 2–5 cm, one-gain LOO stays between 1.01 and 1.13 kg. At 2 cm the mask becomes unstable (tarp noise joins the bunch; LOO up to 7 kg), so 3 cm is a floor, not a tuning choice.
 - **Plane fit upgrade from the literature.** MSAC scoring with LO-RANSAC refits (`fit_plane(robust=True)`) changes volumes by at most 1% and does not change accuracy (within ±0.05 kg of the count-based fit). On synthetic tarps with one-sided debris both fits are sub-millimetre. A MAD-scaled Tukey IRLS refit was also tried and rejected: one-sided outliers bias the scale estimate, and depth errors reached 87 mm.
+- **Mask caveats** (`results/v4/masks.png`). FFB32's RGB frame shows a person still placing the bunch, direct evidence that its colour was captured at a different moment. FFB12's depth-only mask includes a thin tail (stalk or a tarp fold over 3 cm high), a possible over-inclusion. In session 1 the depth-only mask is slightly larger than v2's everywhere, taking in the fringe that v2's colour test dropped.
 - **Status.** Exploratory. The bug was found by inspecting this data, and the tarp search was changed once after the first held-out run (it previously located the tarp relative to the 5th-percentile depth, which fails when the bunch fills under 5% of the frame; LOO moved from 1.37 to 1.13 kg). Both thresholds were set before any held-out run. The method should be fixed as-is and tested on new bunches before it replaces v2.
 
 ---

@@ -1,0 +1,85 @@
+{
+  "prespecified": {
+    "h_min": 0.03,
+    "band": 0.03
+  },
+  "heldout_mae": {
+    "per_session_k:v2_grid:LOO": 1.65,
+    "per_session_k:v2_grid:4/7": 1.973,
+    "per_session_k:v2_grid:7/4": 1.654,
+    "per_session_k:tarp_plane_v2_mask:LOO": 1.619,
+    "per_session_k:tarp_plane_v2_mask:4/7": 1.9,
+    "per_session_k:tarp_plane_v2_mask:7/4": 1.694,
+    "per_session_k:depth_only_mask:LOO": 1.089,
+    "per_session_k:depth_only_mask:4/7": 1.254,
+    "per_session_k:depth_only_mask:7/4": 1.136,
+    "per_session_k:depth_only_mask_msac_lo:LOO": 1.133,
+    "per_session_k:depth_only_mask_msac_lo:4/7": 1.3,
+    "per_session_k:depth_only_mask_msac_lo:7/4": 1.179,
+    "global_k:v2_grid:LOO": 1.603,
+    "global_k:v2_grid:4/7": 1.659,
+    "global_k:v2_grid:7/4": 1.593,
+    "global_k:tarp_plane_v2_mask:LOO": 2.647,
+    "global_k:tarp_plane_v2_mask:4/7": 2.83,
+    "global_k:tarp_plane_v2_mask:7/4": 2.666,
+    "global_k:depth_only_mask:LOO": 1.126,
+    "global_k:depth_only_mask:4/7": 1.204,
+    "global_k:depth_only_mask:7/4": 1.135,
+    "global_k:depth_only_mask_msac_lo:LOO": 1.137,
+    "global_k:depth_only_mask_msac_lo:4/7": 1.23,
+    "global_k:depth_only_mask_msac_lo:7/4": 1.156
+  },
+  "session_ratio": {
+    "V_plane_v2mask": 1.491,
+    "V_plane_ph": 1.137
+  },
+  "gains_kg_per_L": {
+    "global_": 0.507,
+    "per_session": {
+      "combined": 0.496,
+      "split": 0.533
+    }
+  },
+  "vs_aqil": [
+    {
+      "step": "v2_grid",
+      "model": "per_session_k",
+      "mae": 1.65,
+      "mape": 12.349,
+      "aqil_mae": 1.453,
+      "diff_vs_aqil": 0.197,
+      "lo": -0.583,
+      "hi": 0.992
+    },
+    {
+      "step": "v2_grid",
+      "model": "global_k",
+      "mae": 1.603,
+      "mape": 11.834,
+      "aqil_mae": 1.453,
+      "diff_vs_aqil": 0.15,
+      "lo": -0.365,
+      "hi": 0.675
+    },
+    {
+      "step": "depth_only_mask",
+      "model": "per_session_k",
+      "mae": 1.089,
+      "mape": 7.477,
+      "aqil_mae": 1.453,
+      "diff_vs_aqil": -0.364,
+      "lo": -1.187,
+      "hi": 0.451
+    },
+    {
+      "step": "depth_only_mask",
+      "model": "global_k",
+      "mae": 1.126,
+      "mape": 7.902,
+      "aqil_mae": 1.453,
+      "diff_vs_aqil": -0.327,
+      "lo": -1.22,
+      "hi": 0.539
+    }
+  ]
+}

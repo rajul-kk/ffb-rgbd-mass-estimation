@@ -136,7 +136,8 @@ RGBD-Mass/
 ├── notebooks/
 │   ├── kaggle_ffb_pipeline_v2.ipynb   # v2 pipeline (Kaggle, GPU optional)
 │   ├── kaggle_ffb_pipeline.ipynb      # v1 baseline (legacy)
-│   └── ffb_pipeline_v3.ipynb          # CPU re-evaluation: parity, fixes, geometry checks
+│   ├── ffb_pipeline_v3.ipynb          # CPU re-evaluation: parity, fixes, geometry checks
+│   └── ffb_pipeline_v4.ipynb          # Depth-only mask test: offsets, masks, held-out, vs Aqil, sweep
 ├── ffb/                               # Package: bag IO, fusion, segmentation, volume, evaluation, SAM 3
 ├── scripts/
 │   ├── cpu_eval.py                    # Reproduces v2 on CPU and evaluates each fix
