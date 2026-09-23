@@ -163,6 +163,20 @@ In every session 1 bag the bunch is steady only for the first 21–35 frames, th
 - **Two more candidates.** The session 1 variants were two further candidates stacked on this method.
 - **Recommendation:** fix the method as it stands (depth-only mask, steady frames, unaligned depth, one gain) and test it on new bunches.
 
+### General or overfitted?
+
+- **For generality:**
+  - Both fixes remove defects verified directly in the recordings, and each helps only where its defect is: the colour fix in session 2, the steady-frame fix in the bunches that moved most.
+  - The only fitted parameter is still one gain, always estimated on held-out folds.
+  - The thresholds were fixed in advance and are stable across 3–5 cm.
+  - The per-session gains converge (0.50 vs 0.53 kg/L), as they should once a session-specific defect is removed.
+- **Against:**
+  - About a dozen variants were tried on the same 10 bunches and the best is reported, so the numbers are optimistic.
+  - The tarp-search change was made after a held-out run.
+  - The session 1 step (1.13 → 0.99 kg) rests on two bunches and only just excludes zero.
+- **Not general by design:** the method assumes a flat tarp filling the centre of the frame, a top-down camera about 1.55 m away, and bunches at least 3 cm tall. The gain reflects this bunch population's shape.
+- **Expected result on new bunches recorded the same way:** between today's 1.0–1.1 kg and v2's 1.6 kg. The comparison with Aqil should not be claimed until it's confirmed.
+
 ---
 
 ## 6. Comparison with related work

@@ -20,7 +20,8 @@ Held out: each bunch is predicted from a gain fitted on the other bunches. 10 bu
 - **What happened:** session 2's RGB was recorded 35–92 s *before* its depth, with no overlap, and isn't registered to it. v2 keeps only pixels that pass both a depth and a colour test, so for session 2 its mask covered only part of the bunch.
 - **The fix:** the depth-only mask ([report §5](report.md#5-the-session-2-colour-bug-and-the-depth-only-mask)) keeps pixels more than 3 cm above a fitted tarp plane and never reads colour.
 - **The effect:** session 2's error falls from 1.63 to 0.68 kg, while session 1, which never had the bug, stays at 1.57 kg.
-- **Status:** the method was found on this data, so it is exploratory until it's confirmed on new bunches. The comparison with Aqil is not statistically significant with 10 bunches.
+- **Session 1:** fusing only the steady opening frames, with unaligned depth, brings session 1 from 1.57 to 1.35 kg.
+- **Status:** exploratory. Both fixes remove defects verified in the recordings, but they were found on these 10 bunches after about a dozen variants were tried, so the numbers are optimistic. Expect 1.0–1.6 kg on new bunches. The comparison with Aqil is not statistically significant ([report §5](report.md#general-or-overfitted)).
 
 ## Run
 
