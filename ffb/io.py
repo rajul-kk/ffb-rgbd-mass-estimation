@@ -125,7 +125,9 @@ def _combined(path: str, max_frames: Optional[int], align: bool):
 
 
 def iter_frames(bundle: Bundle, max_frames: Optional[int] = None, reader: str = "fixed"):
-    """Yield (rgb or None, depth uint16). "notebook" reuses bag_reader; "native" leaves combined-bag depth unaligned."""
+    """Yield (rgb or None, depth uint16). "notebook" reuses bag_reader; "native" leaves combined-bag depth unaligned.
+    Split bundles pair frames by index, but their RGB bag was recorded 2-3.5 min before the depth bag and is not
+    registered to it, so no pairing aligns them; use segment.plane_height_mask, which never reads colour."""
     if reader == "notebook":
         import bag_reader
         yield from bag_reader.iter_bundle(bundle.folder, max_frames=max_frames)

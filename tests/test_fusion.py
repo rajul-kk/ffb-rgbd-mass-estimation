@@ -61,3 +61,19 @@ def test_all_frames_cache_keys_match_v2_names():
     expected = hashlib.sha1(json.dumps(old, sort_keys=True).encode()).hexdigest()[:10]
     assert FusionConfig(reader="notebook").key() == expected
     assert FusionConfig(frames="steady").key() != FusionConfig().key()
+
+
+def test_code_stamp_is_stable_and_depends_on_the_reader():
+    from ffb.fusion import code_stamp
+    assert code_stamp("fixed") == code_stamp("fixed")
+    assert code_stamp("notebook") != code_stamp("fixed")  # notebook also hashes bag_reader.py
+
+
+def test_code_stamp_ignores_docstrings_and_comments(tmp_path):
+    from ffb.fusion import _code_only
+    a, b, c = tmp_path / "a.py", tmp_path / "b.py", tmp_path / "c.py"
+    a.write_text('def f(x):\n    """Doc."""\n    return x + 1\n')
+    b.write_text('def f(x):\n    """Other doc."""  \n    # a comment\n    return x + 1\n')
+    c.write_text('def f(x):\n    """Doc."""\n    return x + 2\n')
+    assert _code_only(a) == _code_only(b)
+    assert _code_only(a) != _code_only(c)

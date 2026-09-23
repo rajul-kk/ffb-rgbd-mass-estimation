@@ -2,7 +2,7 @@
 
 ## 1. Problem Statement
 
-Estimate the **mass of Oil Palm Fresh Fruit Bunches (FFBs)** from a single paired RGB+Depth frame captured by an Intel RealSense D435i mounted over a loading-ramp scale. The legacy system uses brittle bounding-box depth thresholding and PCA ellipsoid approximations; this project replaces it with a modular, zero-shot AI pipeline.
+Estimate the **mass of Oil Palm Fresh Fruit Bunches (FFBs)** from a single paired RGB+Depth frame captured by an Intel RealSense camera (planned as a D435i; the recorded bags report a D455, serial 215122256082) mounted over a loading-ramp scale. The legacy system uses brittle bounding-box depth thresholding and PCA ellipsoid approximations; this project replaces it with a modular, zero-shot AI pipeline.
 
 ---
 

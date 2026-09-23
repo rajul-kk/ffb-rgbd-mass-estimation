@@ -23,18 +23,6 @@ CFG = FusionConfig(reader="native", spatial="mask_then_nanmedian", frames="stead
 MODEL_ID = "Ruicheng/moge-2-vitl-normal"
 
 
-def ring_pixels(mask, grow=0.5, gap_px=30):
-    """Pixels in the mask's enlarged bounding box but outside the dilated mask."""
-    h, w = mask.shape
-    ys, xs = np.nonzero(mask)
-    bh, bw = ys.max() - ys.min(), xs.max() - xs.min()
-    ring = np.zeros_like(mask)
-    ring[max(0, int(ys.min() - grow * bh)):min(h, int(ys.max() + grow * bh) + 1),
-         max(0, int(xs.min() - grow * bw)):min(w, int(xs.max() + grow * bw) + 1)] = True
-    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * gap_px + 1, 2 * gap_px + 1))
-    return ring & ~cv2.dilate(mask.astype(np.uint8), k).astype(bool)
-
-
 def plane_measure(depth, mask, K):
     n, d, rmse = volume.fit_plane(volume.tarp_points(depth, mask, K))
     v, height, _ = volume.plane_volume(depth, mask, K, (n, d))
@@ -69,7 +57,7 @@ def main():
         depth[~out["mask"].cpu().numpy().astype(bool) | ~np.isfinite(depth)] = 0
         seconds = time.time() - t0
 
-        tarp = ring_pixels(mask) & (depth > 0) & (rs_depth > 0)
+        tarp = volume.ring_mask(mask, gap_px=30) & (depth > 0) & (rs_depth > 0)
         scale = float(np.median(rs_depth[tarp] / depth[tarp]))
         v_raw, h_raw, rmse_raw = plane_measure(depth, mask, Kc)
         v_scaled, h_scaled, rmse_scaled = plane_measure(depth * scale, mask, Kc)

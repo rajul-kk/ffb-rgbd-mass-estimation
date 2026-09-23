@@ -21,11 +21,19 @@ class Model:
             cols.append(np.ones(len(df)))
         return np.column_stack(cols)
 
+    def _lstsq(self, df, target):
+        X = self._X(df)
+        if len(X) < X.shape[1]:  # underdetermined: lstsq would silently return a min-norm guess
+            return None
+        return np.linalg.lstsq(X, df[target].to_numpy(float), rcond=None)[0]
+
     def fit(self, df, target="mass"):
         if not self.by_group:
-            return np.linalg.lstsq(self._X(df), df[target].to_numpy(float), rcond=None)[0]
-        return {g: np.linalg.lstsq(self._X(s), s[target].to_numpy(float), rcond=None)[0]
-                for g, s in df.groupby("group")}
+            coef = self._lstsq(df, target)
+            if coef is None:
+                raise ValueError(f"{self.name}: {len(df)} rows for {len(self.features) + self.intercept} coefficients")
+            return coef
+        return {g: c for g, s in df.groupby("group") if (c := self._lstsq(s, target)) is not None}
 
     def predict(self, coef, df):
         if not self.by_group:
@@ -42,7 +50,7 @@ class Model:
 def metrics(actual, pred) -> dict:
     """MAE, MAPE, squared Pearson r and coefficient of determination over finite predictions."""
     y, p = np.asarray(actual, float), np.asarray(pred, float)
-    ok = np.isfinite(p)
+    ok = np.isfinite(p) & (y != 0)
     y, p = y[ok], p[ok]
     err = p - y
     r = np.corrcoef(y, p)[0, 1] if len(y) > 2 else np.nan

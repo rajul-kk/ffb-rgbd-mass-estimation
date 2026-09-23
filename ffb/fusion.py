@@ -1,6 +1,7 @@
 """Temporal depth fusion over a bundle, cached by its parameters."""
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import warnings
@@ -14,6 +15,23 @@ from .camera import Intrinsics
 from .io import Bundle, iter_frames
 
 _STEADY_FIELDS = ("frames", "ref_frames", "tol_m", "max_changed")
+_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _code_only(path: Path) -> str:
+    """Module AST without docstrings, so comment and docstring edits do not invalidate caches."""
+    tree = ast.parse(path.read_text(encoding="utf8"))
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None)
+        if isinstance(body, list) and body and isinstance(body[0], ast.Expr) and isinstance(getattr(body[0], "value", None), ast.Constant)                 and isinstance(body[0].value.value, str):
+            node.body = body[1:] or [ast.Pass()]
+    return ast.dump(tree)
+
+
+def code_stamp(reader: str) -> str:
+    """Hash of the code that reads and fuses frames; a cache built by different code is rebuilt, not reused."""
+    files = [_ROOT / "ffb" / "io.py", Path(__file__)] + ([_ROOT / "bag_reader.py"] if reader == "notebook" else [])
+    return hashlib.sha1("".join(_code_only(f) for f in files if f.exists()).encode()).hexdigest()[:10]
 
 
 @dataclass(frozen=True)
@@ -95,8 +113,12 @@ def steady_prefix(changed: np.ndarray, max_changed: float) -> int:
 def fuse(bundle: Bundle, K: Intrinsics, cfg: FusionConfig, cache_dir="fused_cache", return_info: bool = False):
     """Return (fused depth m with 0 = no data, best rgb, frames used), plus {n_read, changed} if return_info."""
     path = Path(cache_dir) / f"{bundle.name}_{cfg.key()}.npz"
-    if path.exists():
-        d = np.load(path)
+    stamp = code_stamp(cfg.reader)
+    d = np.load(path) if path.exists() else None
+    if d is not None and ("code" not in d or str(d["code"]) != stamp):
+        warnings.warn(f"{path.name}: built by different reader/fusion code; rebuilding")
+        d = None
+    if d is not None:
         n = int(d["n_frames"])
         info = dict(n_read=int(d["n_read"]) if "n_read" in d else n,
                     changed=d["changed"] if "changed" in d else np.array([]))
@@ -124,6 +146,6 @@ def fuse(bundle: Bundle, K: Intrinsics, cfg: FusionConfig, cache_dir="fused_cach
     n_read = len(frames) if n_read is None else n_read
     fused = nanmedian_rows(np.stack(frames))
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(path, fused=fused, rgb=best_rgb, n_frames=len(frames), n_read=n_read, changed=changed)
+    np.savez_compressed(path, fused=fused, rgb=best_rgb, n_frames=len(frames), n_read=n_read, changed=changed, code=stamp)
     info = dict(n_read=n_read, changed=changed)
     return (fused, best_rgb, len(frames), info) if return_info else (fused, best_rgb, len(frames))
