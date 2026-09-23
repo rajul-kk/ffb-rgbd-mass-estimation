@@ -5,7 +5,7 @@
 **Dataset:** 11 FFBs of one variety, recorded in two sessions; ground truth for 50 FFBs  
 **Method:** zero-shot segmentation and geometry, with one calibration gain fitted to ground truth
 
-> **Revision note.** This version corrects the first report after a full CPU re-run of the pipeline. The re-run reproduces every v2 number exactly. It also shows that the headline figures were measured on the bunches used for calibration, that the cross-validation used a different calibration from the one described, and that several method details and four input bugs were misreported. Section 5 gives the corrected evaluation; Section 12 lists every change.
+> **Revision note.** This version corrects the first report after a full CPU re-run of the pipeline. The re-run reproduces every v2 number exactly. It also shows that the headline figures were measured on the bunches used for calibration, that the cross-validation used a different calibration from the one described, and that several method details and four input bugs were misreported. Section 5 gives the corrected evaluation; Section 13 lists every change.
 
 ---
 
@@ -15,14 +15,15 @@
 - **Baseline.** A caliper ellipsoid fitted on 40 other bunches reaches **1.67 kg** on the same 10. The pipeline matches it on absolute error and ranks bunches by size better (Pearson r² 0.89 vs 0.74), with no manual measurement.
 - **Uncertainty.** 90% prediction intervals are about ±3 kg wide.
 - **Sample size.** With 10 bunches, only MAE differences of about 0.6 kg or more can be detected.
-- **Attempted fixes.** None of the v3 changes beats v2 under leave-one-out, 4/7 or 7/4 evaluation: 0 of 60 paired comparisons are significantly better and 25 are significantly worse (Section 9).
-- **Main open problem.** Errors differ systematically between the two recording sessions. More bunches recorded in one fixed setup are needed to resolve this.
+- **Attempted fixes.** None of the v3 volume changes beats v2 under leave-one-out, 4/7 or 7/4 evaluation: 0 of 60 paired comparisons are significantly better and 25 are significantly worse (Section 9).
+- **Input bug found and fixed (Section 10).** Session 2's RGB bags were recorded 2–3.5 minutes before their depth bags and are not registered to them, yet v2 intersects the depth mask with colour from them, cutting the bunch roughly in half. A depth-only mask (pixels 3 cm above a fitted tarp plane) removes this. **Exploratory result:** held-out MAE **1.09–1.25 kg** against v2's 1.59–1.97, better under every scheme and significant with per-session gains on the 4/7 splits (−0.72 kg, 95% CI −1.34 to −0.15). On the same 10 bunches it is 0.33–0.36 kg below Aqil's manual workflow (1.45 kg), not statistically significant. The session gap falls from 1.49× to 1.14× and one gain now fits both sessions (0.50 vs 0.53 kg/L). These settings were chosen after inspecting this data, so they need confirming on new bunches.
+- **Main open problem.** Confirming the depth-only mask on new bunches recorded in one fixed setup.
 
 ---
 
 ## 2. Objective
 
-Automate the mass estimation of oil palm Fresh Fruit Bunches (FFBs) from a short RGB-D recording, matching or exceeding the accuracy of Aqil's manual CloudCompare workflow. Scored on the same 10 bunches, the two are indistinguishable (Section 7); Aqil's published result over all 50 bunches remains better.
+Automate the mass estimation of oil palm Fresh Fruit Bunches (FFBs) from a short RGB-D recording, matching or exceeding the accuracy of Aqil's manual CloudCompare workflow. Scored on the same 10 bunches, v2 and Aqil are indistinguishable (Section 7). The exploratory depth-only mask (Section 10) is 0.33–0.36 kg better than Aqil on those bunches, not yet significantly; Aqil's published result over all 50 bunches is 1.15 kg.
 
 ---
 
@@ -325,13 +326,39 @@ Findings:
 
 ---
 
-## 10. Known limitations
+## 10. Depth-only mask: session 2 colour bug (exploratory)
+
+**The bug.** In every split bundle (FFB31–35) the RGB bag was recorded 2–3.5 minutes *before* the depth bag (frame timestamps: RGB ends 70–150 s before depth starts), and nothing registers the two sensors. v2 resizes that RGB to the depth grid and keeps only pixels that pass both the depth and the colour test, so its mask is the overlap of the bunch where depth saw it and the bunch where colour saw it minutes earlier. Overlays show the depth blob shifted tens of pixels from the colour blob; FFB31's mask shrinks from 12,388 depth pixels to 5,775 once colour is applied. Session 1 records depth and colour in one bag with depth aligned to colour, and its masks line up. Timestamp pairing cannot fix this — no RGB frame overlaps the depth recording — and a fixed offset cannot either: the estimated shift is inconsistent between bunches.
+
+**The fix.** `segment.plane_height_mask` never reads colour. It finds the tarp as the modal depth in the central half of the frame, fits a plane to pixels within 3 cm of it (RANSAC), keeps pixels more than 3 cm above the plane, and takes the central connected component. Volume is the frustum volume above the same plane.
+
+**Results** (`scripts/plane_mask_eval.py`, `results/plane_mask_*.csv`; FFB18 excluded from scoring):
+
+| | One gain: LOO | 4/7 | 7/4 | Per-session: LOO | 4/7 | 7/4 |
+|---|---|---|---|---|---|---|
+| v2 grid | 1.60 | 1.66 | 1.59 | 1.65 | 1.97 | 1.65 |
+| Tarp-plane volume, v2 mask | 2.65 | 2.83 | 2.67 | 1.62 | 1.90 | 1.69 |
+| **Tarp-plane volume, depth-only mask** | **1.13** | **1.20** | **1.14** | **1.09** | **1.25** | **1.14** |
+| Same, MSAC + LO-RANSAC plane fit | 1.14 | 1.23 | 1.16 | 1.13 | 1.30 | 1.18 |
+
+- **Against v2.** −0.46 to −0.72 kg under every scheme. Significant with per-session gains on the 4/7 splits (−0.72 kg, CI −1.34 to −0.15, bootstrap P(not better) 0.01); borderline elsewhere (P 0.04–0.10). This is the first change in this project to beat v2 in any scheme.
+- **Against Aqil, same 10 bunches.** 1.09 kg / 7.5% (per-session) and 1.13 kg / 7.9% (one gain), against his 1.45 kg / 9.9%: −0.36 kg (CI −1.19 to +0.45) and −0.33 kg (CI −1.22 to +0.54). Numerically better, not significant. Aqil's per-bunch estimates are in `aqil_table_c.csv` (his Table C).
+- **Session gap.** Tarp-plane volume ÷ displaced volume, median by session: 1.99 vs 1.75 (ratio 1.14), against 1.68 vs 1.13 (ratio 1.49) with v2's mask. The residual gap of 1.49× described in Section 9 was mostly this bug.
+- **Calibration becomes more physical.** Gains are 0.50 (session 1) and 0.53 (session 2) kg/L, within 7% of each other; one gain (0.51 kg/L) does as well as two. The factor of about 1.9 between density (≈0.96 kg/L) and the gain is the expected overstatement of a top-down view of a resting, spiky bunch (a resting ellipsoid alone gives 1.33×, Section 9).
+- **Threshold sensitivity** (`results/plane_mask_sweep.csv`). With a height threshold of 3–5 cm and a tarp band of 2–5 cm, one-gain LOO stays between 1.01 and 1.13 kg. At 2 cm the mask becomes unstable (tarp noise joins the bunch; LOO up to 7 kg), so 3 cm is a floor, not a tuning choice.
+- **Plane fit upgrade from the literature.** MSAC scoring with LO-RANSAC refits (`fit_plane(robust=True)`) changes volumes by at most 1% and does not change accuracy (within ±0.05 kg of the count-based fit). On synthetic tarps with one-sided debris both fits are sub-millimetre. A MAD-scaled Tukey IRLS refit was also tried and rejected: one-sided outliers bias the scale estimate, and depth errors reached 87 mm.
+- **Status.** Exploratory. The bug was found by inspecting this data, and the tarp search was changed once after the first held-out run (it previously located the tarp relative to the 5th-percentile depth, which fails when the bunch fills under 5% of the frame; LOO moved from 1.37 to 1.13 kg). Both thresholds were set before any held-out run. The method should be fixed as-is and tested on new bunches before it replaces v2.
+
+---
+
+## 11. Known limitations
 
 | Item | Issue |
 |---|---|
 | FFB18 | Excluded from all metrics: person in frame (protocol issue) and grid volume undercounts this small, compact bunch by ~41% (Section 3) |
 | FFB32 | Largest error; underestimated by every approach; not caused by missing depth |
-| Session effect | Sessions differ in scene, background, bag layout and bunch batch; with 5–6 bunches each, their effects cannot be separated |
+| Session effect | Mostly explained by unregistered session 2 colour (Section 10); a residual 1.14× remains, and with 5–6 bunches per session it cannot be attributed further |
+| Session 2 colour | RGB recorded 2–3.5 min before depth and not registered to it; any colour-based step in session 2 is unreliable |
 | Ground truth | Displaced volume rounded to whole litres; the density column is derived from it |
 | Recordings | Most scenes are disturbed partway through; v2 fuses those frames for session 1 and only 32 frames for session 2 |
 | Sample size | 10 evaluable bunches; MAE differences under about 0.6 kg cannot be detected |
@@ -340,7 +367,7 @@ Findings:
 
 ---
 
-## 11. Recommendations for new data
+## 12. Recommendations for new data
 
 1. Record 25–30 bunches in one fixed setup: same background, recording layout and camera height. Record a few bunches in both previous setups to measure the setup effect directly.
 2. Keep the scene still for the first ~5 s of each recording, and set RealSense depth units to 100 µm.
@@ -352,7 +379,7 @@ Findings:
 
 ---
 
-## 12. Corrections from the previous version
+## 13. Corrections from the previous version
 
 | Previous statement | Correction |
 |---|---|

@@ -42,7 +42,15 @@ Evaluated on 10 FFBs (FFB18 excluded: person in frame).
 
 **Attempted fixes.** None of the v3 changes (steady frames, filter order, grid-free volume, tarp plane, unaligned depth) beats v2 under leave-one-out, 4/7 or 7/4 evaluation (report §9).
 
-**Open problem.** Errors differ systematically between the two recording sessions (report §9). More bunches recorded in one fixed setup are needed before any change can be confirmed.
+**Session 2 colour bug and depth-only mask (exploratory, report §10).** Session 2's RGB bags were recorded 2–3.5 min before their depth bags and are not registered to them; v2 intersects the depth mask with that colour and cuts the bunch roughly in half. `segment.plane_height_mask` segments from depth alone (pixels 3 cm above a fitted tarp plane):
+
+| Held-out MAE | LOO | 4/7 | 7/4 |
+|---|---|---|---|
+| v2, one gain | 1.60 kg | 1.66 kg | 1.59 kg |
+| **Depth-only mask + tarp-plane volume, one gain** | **1.13 kg** | **1.20 kg** | **1.14 kg** |
+| **Same, per-session gains** | **1.09 kg** | **1.25 kg** | **1.14 kg** |
+
+It beats v2 under every scheme (significant with per-session gains on 4/7 splits: −0.72 kg, CI −1.34 to −0.15), shrinks the session gap from 1.49× to 1.14×, and lets one gain serve both sessions. Settings were chosen after inspecting this data, so it needs confirming on new bunches before replacing v2.
 
 ---
 
@@ -132,8 +140,11 @@ RGBD-Mass/
 ├── ffb/                               # Package: bag IO, fusion, segmentation, volume, evaluation, SAM 3
 ├── scripts/
 │   ├── cpu_eval.py                    # Reproduces v2 on CPU and evaluates each fix
+│   ├── grid_pitch_eval.py             # Rejected grid-volume fixes, held-out
+│   ├── plane_mask_eval.py             # Depth-only mask: held-out, sweep, vs Aqil
 │   └── moge_check.py                  # MoGe-2 monocular-depth cross-check
-├── tests/                             # Synthetic geometry, fusion, evaluation and SAM 3 tests
+├── tests/                             # Synthetic geometry, segmentation, fusion, evaluation and SAM 3 tests
+├── aqil_table_c.csv                   # Aqil's per-bunch estimates (thesis Table C), for like-for-like comparison
 ├── results/                           # CPU evaluation outputs (CSV, JSON, plots)
 ├── perception_pipeline.py             # Base pipeline class (patched by the v2 notebook)
 ├── bag_reader.py                      # RealSense .bag reading used by the v2 notebook
@@ -177,12 +188,14 @@ Upload the dataset as a private Kaggle dataset, set `PROJECT_DIR` in the `prefli
 
 ```bash
 pip install -r requirements.txt
-python -m pytest                    # 32 tests, a few seconds
+python -m pytest                    # 55 tests, under a minute
 python scripts/cpu_eval.py          # v2 parity + fix ladder, ~6 min cold, seconds with fused_cache/
+python scripts/grid_pitch_eval.py   # rejected grid-volume fixes (pitch, ring z_ref, cell interpolation)
+python scripts/plane_mask_eval.py   # depth-only mask: held-out, threshold sweep, vs Aqil
 jupyter nbconvert --to notebook --execute notebooks/ffb_pipeline_v3.ipynb
 ```
 
-Bags are read from `data/`; fused depth is cached in `fused_cache/` under a key that includes the fusion settings.
+Bags are read from `data/`; fused depth is cached in `fused_cache/` under a key that includes the fusion settings. Each cache file also stores a hash of the reading/fusion code (`io.py`, `fusion.py`, and `bag_reader.py` for the notebook reader) and is rebuilt if that code changes. CI runs the tests on every push (`.github/workflows/tests.yml`).
 
 ### Optional models (MoGe-2, SAM 3)
 
@@ -225,7 +238,8 @@ SAM 3 additionally needs approved access to `facebook/sam3` and `.venv-models\Sc
 |---|---|
 | FFB18 | Person in frame; excluded from all metrics (v1 overestimated its volume by 10 L, Approach A by 3.2 L) |
 | FFB32 | Largest error; underestimated by every approach; not caused by missing depth |
-| Session effect | The two sessions differ in scene, background, recording layout and bunch batch; with 5–6 bunches each, their effects cannot be separated |
+| Session effect | Mostly explained by unregistered session 2 colour (report §10); a residual 1.14× remains |
+| Session 2 colour | RGB recorded 2–3.5 min before depth and not registered to it; colour-based steps in session 2 are unreliable |
 | Ground truth | Displaced volume rounded to whole litres (≈0.24 kg MAE floor); density column derived from it |
 | Recordings | Most scenes are disturbed partway through; v2 fuses those frames for session 1 |
 | Sample size | 10 evaluable bunches; MAE differences under ~0.6 kg cannot be detected |
@@ -241,7 +255,8 @@ The pipeline is a **controlled-protocol instrument**: flat background, top-down 
 | Aqil, manual CloudCompare | 10 | **1.45 kg** | 90.1% | 0.797 (Pearson) | Manual segmentation; no gain fitted to vision output |
 | This pipeline (A), leave-one-out, one gain | 10 | 1.60 kg | 88.2% | **0.886** (Pearson) | Automated; gain fitted on the other 9 |
 | This pipeline (A), leave-one-out, per-session gains | 10 | 1.65 kg | 87.7% | 0.810 (Pearson) | Automated; gains fitted on the other 9 |
+| Depth-only mask (exploratory), leave-one-out, one gain | 10 | 1.13 kg | 92.1% | — | Automated; report §10; not yet confirmed on new data |
 | Caliper ellipsoid, fitted on 40 other bunches | 10 | 1.67 kg | 89.3% | 0.740 (Pearson) | Manual measurement, same bunches |
 | Group 2 (YOLOv8 + PCA ellipsoid) | 5 | 4.4 kg | 74.4% | — | Scale factor tuned; session 1 only |
 
-All rows use the same ground truth and the same bunches. Against Aqil the paired difference is **+0.15 kg (95% CI −0.36 to +0.68)** — indistinguishable on 10 bunches. Aqil's own headline over all 50 bunches is better (MAE 1.15 kg, Pearson r² 0.902) and would need roughly 0.45 kg lower MAE to beat. Group 2's published 73% is the mean of (1 − |error| ÷ actual) over 6 bunches including the excluded FFB18, and their report calls it a projected goal; on the 5 comparable bunches this pipeline scores 1.57 kg and 90.4%. See Section 7 of [report.md](report.md).
+All rows use the same ground truth and the same bunches. Against Aqil the paired difference is **+0.15 kg (95% CI −0.36 to +0.68)** for v2 and **−0.33 kg (CI −1.22 to +0.54)** for the exploratory depth-only mask — neither significant on 10 bunches. Aqil's own headline over all 50 bunches is better (MAE 1.15 kg, Pearson r² 0.902) and would need roughly 0.45 kg lower MAE to beat. Group 2's published 73% is the mean of (1 − |error| ÷ actual) over 6 bunches including the excluded FFB18, and their report calls it a projected goal; on the 5 comparable bunches this pipeline scores 1.57 kg and 90.4%. See Section 7 of [report.md](report.md).
