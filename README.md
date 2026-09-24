@@ -29,7 +29,7 @@ Held out: each bunch is predicted from a gain fitted on the other bunches. 10 bu
 pip install -r requirements.txt
 python -m pytest                      # 55 tests
 python scripts/cpu_eval.py            # v2 reproduced on CPU + fix ladder (report §7)
-python scripts/grid_pitch_eval.py     # rejected grid-volume fixes (report §7)
+python scripts/grid_fixes_eval.py     # rejected grid-volume fixes (report §7)
 python scripts/plane_mask_eval.py     # depth-only mask: held-out, threshold sweep, vs Aqil (report §5–6)
 python scripts/session1_eval.py       # steady frames and unaligned depth (report §5)
 python scripts/make_v4_notebook.py && jupyter nbconvert --to notebook --execute --inplace notebooks/ffb_pipeline_v4.ipynb
@@ -61,7 +61,7 @@ notebooks/
   ffb_pipeline_v3.ipynb          CPU re-evaluation of v2 and single changes
   ffb_pipeline_v4.ipynb          depth-only mask: recording offsets, masks, held-out, vs Aqil
 scripts/                  reproducible evaluations (see Run)
-results/                  outputs of the scripts and notebooks
+results/                  one folder per script (cpu_eval, grid_fixes, depth_mask, session1) and notebook (v3, v4)
 tests/                    synthetic geometry, segmentation, fusion and evaluation tests
 ground_truth.csv          50 bunches: mass, caliper W/L/T, displaced volume
 aqil_table_c.csv          Aqil's per-bunch estimates (thesis Table C)

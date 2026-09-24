@@ -22,7 +22,8 @@ SWEEP = [(h, b) for h in (0.02, 0.03, 0.04, 0.05) for b in (0.02, 0.03, 0.05)]
 
 
 def main():
-    out = ROOT / "results"
+    out = ROOT / "results" / "depth_mask"
+    out.mkdir(parents=True, exist_ok=True)
     gt = ex.ground_truth(ROOT)
     scenes = {}
     for folder in sorted(p for p in (ROOT / "data").iterdir() if p.is_dir() and p.name.startswith("FFB")):
@@ -36,12 +37,12 @@ def main():
         for name, (_, K, fused) in scenes.items():
             m, pl = segment.plane_height_mask(fused, K, **PRESPECIFIED, robust=robust)
             vol.loc[vol.ffb == name, col] = volume.plane_volume(fused, m, K, pl)[0] if m is not None else np.nan
-    vol.to_csv(out / "plane_mask_volumes.csv", index=False)
+    vol.to_csv(out / "volumes.csv", index=False)
 
     steps = [("v2_grid", "notebook", "V_grid"), ("tarp_plane_v2_mask", "notebook", "V_plane"),
              ("plane_height_mask", "notebook", "V_plane_ph"), ("plane_height_mask_msac_lo", "notebook", "V_plane_ph_msac")]
     held = ex.heldout_comparison(vol, gt, steps, models=ex.BASE_MODELS[:2])
-    held.to_csv(out / "plane_mask_heldout.csv", index=False)
+    held.to_csv(out / "heldout.csv", index=False)
 
     sweep = []
     for h_min, band in SWEEP:
@@ -53,7 +54,7 @@ def main():
         mae = t.set_index(["model", "scheme"])["mae"]
         sweep.append(dict(h_min=h_min, band=band, global_LOO=mae["global_k", "LOO"], global_4_7=mae["global_k", "4/7"],
                           per_session_LOO=mae["per_session_k", "LOO"]))
-    pd.DataFrame(sweep).to_csv(out / "plane_mask_sweep.csv", index=False)
+    pd.DataFrame(sweep).to_csv(out / "sweep.csv", index=False)
 
     a_tab = pd.read_csv(ROOT / "aqil_table_c.csv")
     aqil = pd.Series(a_tab["Est_Mass_kg"].to_numpy(), index="FFB" + a_tab["FFB_No"].astype(str))
@@ -76,7 +77,7 @@ def main():
     summary = dict(prespecified=PRESPECIFIED, vs_aqil_same_10=vs_aqil, gains=gains,
                    volume_over_true_by_session=ratio.round(3).to_dict(),
                    session_ratio={c: float(ratio.loc["combined", c] / ratio.loc["split", c]) for c in ratio})
-    (out / "plane_mask_summary.json").write_text(json.dumps(summary, indent=2, default=float))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=float))
 
     pd.set_option("display.width", 200)
     print(held.pivot_table(index=["model", "step"], columns="scheme", values="mae", aggfunc="first").round(2).to_string())

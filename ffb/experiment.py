@@ -29,7 +29,8 @@ def ground_truth(root) -> pd.DataFrame:
     return g
 
 
-def measure(bundle, K, cfg: FusionConfig, cache):
+def measure(bundle, K, cfg: FusionConfig, cache, extra=None):
+    """Volumes for one bundle; extra(fused, mask, K, z_front, z_window) -> dict adds experiment-specific columns."""
     t0 = time.time()
     fused, rgb, n_frames, info = fuse(bundle, K, cfg, cache, return_info=True)
     mask, z_front, z_window, source = segment.extract_mask(fused, rgb, K.width)
@@ -37,18 +38,10 @@ def measure(bundle, K, cfg: FusionConfig, cache):
     if mask is not None:
         clipped = volume.clip_depth(fused, z_front, z_window)
         v_grid, z_ref = volume.grid_volume(volume.project(clipped, mask, K))
-        pitch = max(0.002, volume.pixel_pitch(K, z_front + z_window))
-        v_grid_pitch, _ = volume.grid_volume(volume.project(clipped, mask, K), grid_step=pitch)
-        ring_ref = volume.ring_z_ref(fused, mask, K)
-        v_grid_ring = volume.grid_volume(volume.project(clipped, mask, K), z_ref=ring_ref)[0] if ring_ref else np.nan
-        v_grid_ring_pitch = (volume.grid_volume(volume.project(clipped, mask, K), grid_step=pitch, z_ref=ring_ref)[0]
-                              if ring_ref else np.nan)
-        v_grid_fill = volume.grid_volume(volume.project(clipped, mask, K), fill_radius=3)[0]
         row.update(V_grid=v_grid, z_ref=z_ref, V_frustum=volume.frustum_volume(clipped, mask, K, z_ref),
-                   V_grid_pitch=v_grid_pitch, grid_pitch_mm=1000 * pitch,
-                   V_grid_ring=v_grid_ring, V_grid_ring_pitch=v_grid_ring_pitch, ring_z_ref=ring_ref,
-                   V_grid_fill=v_grid_fill,
                    mask_px=int(mask.sum()), mask_holes=float((fused[mask] <= 0).mean()))
+        if extra is not None:
+            row.update(extra(fused, mask, K, z_front, z_window))
         try:
             n, d, rmse = volume.fit_plane(volume.tarp_points(fused, mask, K))
             v_plane, height, area = volume.plane_volume(fused, mask, K, (n, d))
@@ -60,22 +53,21 @@ def measure(bundle, K, cfg: FusionConfig, cache):
         ph, plane = segment.plane_height_mask(fused, K)
         if ph is not None:
             v, h, a = volume.plane_volume(fused, ph, K, plane)
-            row.update(V_plane_ph=v, H_ph=h, area_ph=a, mask_px_ph=int(ph.sum()),
-                       V_grid_ph=volume.grid_volume(volume.project(fused, ph, K), z_ref=volume.ring_z_ref(fused, ph, K))[0])
+            row.update(V_plane_ph=v, H_ph=h, area_ph=a, mask_px_ph=int(ph.sum()))
     except ValueError as e:
         row["ph_error"] = str(e)
     row["seconds"] = round(time.time() - t0, 1)
     return row, mask, rgb, fused
 
 
-def run_bundles(data, fusions: dict, cache, keep_fusion=None, verbose=True):
+def run_bundles(data, fusions: dict, cache, keep_fusion=None, verbose=True, extra=None):
     """Measure every FFB folder under every fusion; returns (table, {ffb: (K, mask, rgb, fused)} for keep_fusion)."""
     rows, keep = [], {}
     for folder in sorted(p for p in Path(data).iterdir() if p.is_dir() and p.name.startswith("FFB")):
         bundle = io.find_bundle(str(folder))
         for name, cfg in fusions.items():
             K = io.intrinsics(bundle, "depth" if cfg.reader == "native" else "auto")
-            row, mask, rgb, fused = measure(bundle, K, cfg, cache)
+            row, mask, rgb, fused = measure(bundle, K, cfg, cache, extra)
             rows.append(dict(ffb=bundle.name, fusion=name, layout=bundle.layout, width=K.width, fx=round(K.fx, 1)) | row)
             if name == keep_fusion:
                 keep[bundle.name] = (K, mask, rgb, fused)

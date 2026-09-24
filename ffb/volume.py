@@ -37,10 +37,8 @@ def ring_z_ref(depth_m: np.ndarray, mask: np.ndarray, K: Intrinsics, percentile:
 
 def grid_volume(points: np.ndarray, grid_step: float = 0.002, z_ref: float | None = None,
                  fill_radius: int = 0) -> tuple[float, float]:
-    """Notebook integral: sum over 2 mm xy cells of (z_ref - min z). z_ref defaults to the 95th-percentile depth
-    of `points` (bunch-only, so it can sit above the true tarp); pass a ring-derived z_ref to fix that.
-    fill_radius > 0 fills empty cells from their nearest filled neighbour (CloudCompare's own 2.5D volume
-    approach), capped at that many cells away so it patches aliasing gaps, not real occlusion."""
+    """Notebook integral: sum over xy cells of (z_ref - min z); z_ref defaults to the points' 95th-percentile depth.
+    fill_radius > 0 fills empty cells from the nearest filled cell up to that many cells away (CloudCompare-style)."""
     if points.shape[0] < 20:
         return 0.0, 0.0
     x, y, z = points.T.astype(np.float64)

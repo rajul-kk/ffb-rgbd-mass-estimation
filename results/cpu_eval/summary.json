@@ -147,7 +147,7 @@
     }
   ],
   "sam3": {
-    "status": "blocked: RuntimeError: SAM 3 needs transformers>=5 with Sam3Model"
+    "status": "not requested"
   },
-  "runtime_s": 36.3
+  "runtime_s": 274.8
 }

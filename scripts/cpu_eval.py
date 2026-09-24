@@ -37,7 +37,7 @@ STEPS = [
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--data", default=str(ROOT / "data"))
-    ap.add_argument("--out", default=str(ROOT / "results"))
+    ap.add_argument("--out", default=str(ROOT / "results" / "cpu_eval"))
     ap.add_argument("--cache", default=str(ROOT / "fused_cache"))
     ap.add_argument("--sam3", action="store_true", help="also run SAM 3 (needs transformers>=5 and facebook/sam3 access)")
     args = ap.parse_args()
@@ -46,15 +46,15 @@ def main():
     t0, gt = time.time(), ex.ground_truth(ROOT)
 
     vol, keep = ex.run_bundles(args.data, FUSIONS, args.cache, keep_fusion="nan_blur")
-    vol.to_csv(out / "cpu_eval_volumes.csv", index=False)
+    vol.to_csv(out / "volumes.csv", index=False)
     lad, preds = ex.ladder(vol, gt, STEPS)
-    lad.to_csv(out / "cpu_eval_ladder.csv", index=False)
+    lad.to_csv(out / "ladder.csv", index=False)
     ffbs = [f for f in ex.step_frame(vol, gt, "notebook", "V_grid").index if f not in ex.EXCLUDED]
     per_ffb = pd.DataFrame({"actual_kg": gt.loc[ffbs, "Actual_Mass_kg"]})
     for (step, model), p in preds.items():
         if step in ("S0_notebook", "S4_tarp_plane") and model in ex.PRIMARY_MODELS:
             per_ffb[f"{step}:{model}"] = p
-    per_ffb.round(3).to_csv(out / "cpu_eval_per_ffb_loo.csv")
+    per_ffb.round(3).to_csv(out / "per_ffb_loo.csv")
 
     tarp = float(np.nanmedian(vol.loc[vol["fusion"] == "nan_blur", "tarp_depth"]))
     cameras = {f"{K.width}x{K.height}": K for K in (keep["FFB10"][0], keep["FFB31"][0])}
@@ -65,7 +65,7 @@ def main():
                                    for m in ex.BASE_MODELS[:2]]
     summary["sam3"] = ex.sam3_eval(keep) if args.sam3 else dict(status="not requested")
     summary["runtime_s"] = round(time.time() - t0, 1)
-    (out / "cpu_eval_summary.json").write_text(json.dumps(summary, indent=2, default=float))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=float))
 
     pd.set_option("display.width", 200)
     print(lad[lad["primary"]].round(3).to_string(index=False))

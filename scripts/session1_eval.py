@@ -27,7 +27,8 @@ CANDIDATES = {
 
 def main():
     warnings.simplefilter("ignore")
-    out = ROOT / "results"
+    out = ROOT / "results" / "session1"
+    out.mkdir(parents=True, exist_ok=True)
     gt = ex.ground_truth(ROOT)
     rows = []
     for folder in sorted(p for p in (ROOT / "data").iterdir() if p.is_dir() and p.name.startswith("FFB")):
@@ -40,11 +41,11 @@ def main():
                              V=volume.plane_volume(fused, m, K, pl)[0] if m is not None else np.nan))
             print(b.name, name, n_used, "/", info["n_read"], flush=True)
     vol = pd.DataFrame(rows)
-    vol.to_csv(out / "session1_volumes.csv", index=False)
+    vol.to_csv(out / "volumes.csv", index=False)
 
     steps = [(n, n, "V") for n in CANDIDATES]
     held = ex.heldout_comparison(vol, gt, steps, models=ex.BASE_MODELS[:2])
-    held.to_csv(out / "session1_heldout.csv", index=False)
+    held.to_csv(out / "heldout.csv", index=False)
 
     per = {}
     for n in CANDIDATES:
@@ -52,7 +53,7 @@ def main():
         p = ev.loo(df, ex.BASE_MODELS[1])
         per[n] = p - df["mass"]
     per = pd.DataFrame(per).assign(session=ex.step_frame(vol, gt, "all_frames", "V").drop(index=ex.EXCLUDED)["group"])
-    per.round(3).to_csv(out / "session1_per_bunch_errors.csv")
+    per.round(3).to_csv(out / "per_bunch_errors.csv")
     ratio = vol.assign(true_L=gt.loc[vol.ffb, "Actual_Volume_L"].to_numpy())
     ratio["ratio"] = 1000 * ratio.V / ratio.true_L
     spread = ratio[~ratio.ffb.isin(ex.EXCLUDED)].groupby(["fusion", "layout"])["ratio"].agg(["median", "std"]).round(3)
@@ -63,7 +64,7 @@ def main():
     print(per.round(2).to_string())
     print(per.drop(columns="session").abs().groupby(per.session).mean().round(2).to_string())
     print(spread.to_string())
-    (out / "session1_summary.json").write_text(json.dumps(dict(
+    (out / "summary.json").write_text(json.dumps(dict(
         mae_by_session=per.drop(columns="session").abs().groupby(per.session).mean().round(3).to_dict(),
         ratio_spread={f"{a}:{b}": v for (a, b), v in spread["std"].items()}), indent=2))
 

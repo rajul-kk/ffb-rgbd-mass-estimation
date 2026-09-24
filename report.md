@@ -117,7 +117,7 @@ Both 3 cm thresholds were fixed before any held-out run.
 
 ### Results
 
-`scripts/plane_mask_eval.py` and `notebooks/ffb_pipeline_v4.ipynb` reproduce each other; outputs are in `results/plane_mask_*` and `results/v4/`.
+`scripts/plane_mask_eval.py` and `notebooks/ffb_pipeline_v4.ipynb` reproduce each other; outputs are in `results/depth_mask/` and `results/v4/`.
 
 | Held-out MAE (kg) | One gain: LOO | 4/7 | 7/4 | Per-session: LOO | 4/7 | 7/4 |
 |---|---|---|---|---|---|---|
@@ -137,14 +137,14 @@ Both 3 cm thresholds were fixed before any held-out run.
   The session without the bug doesn't change on average; the session with it improves 2.4-fold. That is what a real fix to this bug should do, and a change that merely fitted the data would be unlikely to leave session 1 untouched.
 - **Session gap:** volume above the tarp ÷ true volume now differs 1.14× between sessions, down from 1.49×.
 - **Calibration:** the gains are 0.50 (session 1) and 0.53 (session 2) kg/L, and one gain (0.51 kg/L) works as well as two. Density is about 0.96 kg/L. The ratio of about 1.9 between density and gain is what a top-down view of a resting, spiky bunch should give: a resting ellipsoid alone gives 1.33×.
-- **Threshold sensitivity** (`results/plane_mask_sweep.csv`): one-gain LOO stays between 1.01 and 1.13 kg for heights of 3–5 cm and tarp bands of 2–5 cm. At 2 cm tarp noise joins the bunch and MAE reaches 7 kg, so 3 cm is a floor.
+- **Threshold sensitivity** (`results/depth_mask/sweep.csv`): one-gain LOO stays between 1.01 and 1.13 kg for heights of 3–5 cm and tarp bands of 2–5 cm. At 2 cm tarp noise joins the bunch and MAE reaches 7 kg, so 3 cm is a floor.
 - **Masks** (`results/v4/masks.png`):
   - In session 1 the depth-only mask is slightly larger than v2's, adding the fringe that v2's colour test dropped.
   - FFB12's mask includes a thin tail, either the stalk or a tarp fold more than 3 cm high. It may add volume that isn't bunch.
 
 ### Session 1: steady frames and unaligned depth
 
-In every session 1 bag the bunch is steady only for the first 21–35 frames, then keeps moving to the end; v2's median blends 42–78% moving frames. Session 2's reader stopped at frame 32, inside its steady opening. Two candidates were fixed before running (`scripts/session1_eval.py`, `results/session1_*`), both with the depth-only mask and the existing steady-frame detector:
+In every session 1 bag the bunch is steady only for the first 21–35 frames, then keeps moving to the end; v2's median blends 42–78% moving frames. Session 2's reader stopped at frame 32, inside its steady opening. Two candidates were fixed before running (`scripts/session1_eval.py`, `results/session1/`), both with the depth-only mask and the existing steady-frame detector:
 
 | Held-out MAE (kg), one gain | LOO | 4/7 | 7/4 | Session 1 | Session 2 |
 |---|---|---|---|---|---|
@@ -206,7 +206,7 @@ Both theses used the same ground truth, so all methods can be scored on the same
 
 ## 7. Other changes tested and rejected
 
-`notebooks/ffb_pipeline_v3.ipynb` and `scripts/cpu_eval.py` test v2 changes one at a time; `scripts/grid_pitch_eval.py` covers the grid-volume fixes.
+`notebooks/ffb_pipeline_v3.ipynb` and `scripts/cpu_eval.py` test v2 changes one at a time; `scripts/grid_fixes_eval.py` covers the grid-volume fixes.
 
 | Held-out MAE (kg), vs v2 | One gain: LOO | 4/7 | 7/4 | Per-session: LOO | 4/7 | 7/4 |
 |---|---|---|---|---|---|---|
