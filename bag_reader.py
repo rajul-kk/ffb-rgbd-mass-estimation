@@ -65,7 +65,10 @@ def _iter_single_bag(
             depth_frame = aligned.get_depth_frame()
             if not color_frame or not depth_frame:
                 continue
-            rgb = np.asanyarray(color_frame.get_data())[..., ::-1].copy()
+            rgb = np.asanyarray(color_frame.get_data())
+            # handle both bgr8 and rgb8 formats (session-1 bags are rgb8; flipping those made fruit look blue)
+            if color_frame.get_profile().format().name == "bgr8":
+                rgb = rgb[..., ::-1].copy()
             depth = np.asanyarray(depth_frame.get_data())
             yield rgb, depth
             count += 1
