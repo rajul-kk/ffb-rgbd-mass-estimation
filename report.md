@@ -13,8 +13,9 @@
 - **v2, held out.** Leave-one-out MAE **1.60–1.65 kg** (MAPE 11.8–12.3%) on 10 bunches. The previously reported 1.27 kg was in-sample. A caliper ellipsoid reaches 1.67 kg on the same bunches.
 - **Bug found.** Session 2's colour images were recorded before its depth, with no overlap in time, and are not registered to it. v2 keeps only pixels that pass both a depth and a colour test, so for those bunches its mask covers only part of the bunch (Section 5).
 - **Fix: a depth-only mask.** It removes the colour test, which gives leave-one-out MAE **1.13 kg** (MAPE 7.9%) with one gain. It beats v2 under every evaluation scheme, and the improvement is entirely in session 2 (1.63 → 0.68 kg), the only session with the bug.
+- **Steady frames.** Fusing only the steady opening frames and using unaligned depth lowers this to **0.99 kg** (LOO, one gain). This is the recommended recipe (Section 5).
 - **Against Aqil's manual workflow** on the same 10 bunches: the depth-only mask scores 1.13 kg against his 1.45 kg. That's 0.33 kg better, not statistically significant (95% CI −1.22 to +0.54). v2 was 0.15 kg worse.
-- **Status.** The depth-only mask is exploratory: the bug was found by inspecting this data. It should be fixed as-is and confirmed on new bunches before it replaces v2.
+- **Status.** The depth-only mask is exploratory: the bug was found by inspecting this data. It should be fixed as-is and confirmed on new bunches before it replaces v2. Expect 1.0–1.6 kg on new bunches.
 - **Sample size.** With 10 evaluable bunches, only MAE differences of about 0.6 kg can be detected reliably.
 
 ---
@@ -53,7 +54,7 @@
 | Split-bag reader keeps frame references | Session 2 fused 32 frames, not 120 |
 | Median filter before invalid masking | Zero-depth neighbours pull edge pixels nearer or remove them |
 | Disturbed frames fused | Session 1 medians blend several poses |
-| Session 1 colour in BGR order | Affects only the Grounding DINO/SAM2 comparison (Approach C). The depth mask uses saturation and value, which the swap leaves unchanged |
+| Colour channels flipped unconditionally | The bags are rgb8, so `bag_reader.py` swapped red and blue. This changes only hue, so it affects the Grounding DINO/SAM2 comparison (Approach C) but not the masks, which use saturation and value. Fixed: flip only for bgr8 |
 
 The "848 vs 1280" branch in v2 is not two cameras; it separates the two sessions.
 
@@ -206,51 +207,23 @@ Both theses used the same ground truth, so all methods can be scored on the same
 
 ## 7. Other changes tested and rejected
 
-`notebooks/ffb_pipeline_v3.ipynb` and `scripts/cpu_eval.py` test v2 changes one at a time; `scripts/grid_fixes_eval.py` covers the grid-volume fixes.
+`notebooks/ffb_pipeline_v3.ipynb`, `scripts/cpu_eval.py` and `scripts/grid_fixes_eval.py` test v2 changes one at a time, all with v2's colour-dependent mask. Outputs are in `results/cpu_eval/` and `results/grid_fixes/`.
 
-| Held-out MAE (kg), vs v2 | One gain: LOO | 4/7 | 7/4 | Per-session: LOO | 4/7 | 7/4 |
-|---|---|---|---|---|---|---|
-| v2 | 1.60 | 1.66 | 1.59 | 1.65 | 1.97 | 1.65 |
-| Steady frames only | 1.43 | 1.79 | 1.58 | 1.58 | 2.21 | 1.85 |
-| + median filter after masking | 2.28 | 2.72 | 2.50 | 2.29 | 3.35 | 2.69 |
-| + grid-free (frustum) volume | 5.84 | 5.80 | 5.78 | 2.44 | 3.76 | 2.98 |
-| + tarp-plane reference | 3.26 | 3.46 | 3.29 | 1.69 | 2.06 | 1.81 |
-| Filter after masking + grid cell = pixel pitch | 6.47 | 6.61 | 6.47 | 3.25 | 4.14 | 3.47 |
-| Filter after masking + z_ref from tarp ring | 5.30 | 6.09 | 5.40 | 1.86 | 2.35 | 2.04 |
-| Filter after masking + empty-cell interpolation | 7.10 | 7.35 | 7.18 | 3.46 | 4.44 | 3.73 |
-
-Across four calibration models, none of the 60 v3 paired comparisons is significantly better than v2, and 25 are significantly worse.
-
-**Why v2's grid undercounts.** v2's grid recovers only 31–59% of displaced volume, for two reasons:
-- **Session 1:** z_ref, the 95th percentile of the masked bunch points, sits 11–20 cm above the tarp.
-- **Session 2:** the 2 mm cells are finer than the 3.6 mm depth pixel, so many cells get no point.
-
-Each of these was confirmed per bunch. FFB18 has the smallest z_ref gap, which is why the gain overshoots it.
-
-**Why the fixes failed.** Each fix works on synthetic scenes but fails on real depth:
-- **Bigger grid cells** catch near-outlier pixels.
-- **Interpolation** can't tell aliasing gaps from real dropouts.
-- **A deeper z_ref** overshoots session 1.
-
-These fixes changed the volume calculation while keeping v2's colour-dependent mask, so none of them addressed the session 2 bug.
-
-**How much of the v2 gain is physics.** Predicting mass as an external density (Aqil's 956.28 kg/m³) × volume, with nothing fitted to these bunches:
-
-| Volume used | MAE |
+| Held-out MAE (kg), one gain, LOO | |
 |---|---|
-| Grid volume (filter after masking) | 8.98 kg |
-| + both grid fixes | 4.52 kg |
-| v2 fitted gain, for reference | 1.65 kg |
+| v2 | 1.60 |
+| Steady frames only | 1.43 |
+| + median filter after masking | 2.28 |
+| + grid-free (frustum) volume | 5.84 |
+| + tarp-plane reference | 3.26 |
+| Pixel-pitch grid cells, tarp-ring z_ref or empty-cell interpolation (each with filter after masking) | 5.30–7.10 |
 
-The two mechanisms explain about half of what the gain corrects.
+Across four calibration models, none of the 60 paired comparisons is significantly better than v2, and 25 are significantly worse.
 
-**Other checks**
-- **Steady frames** (fusing only frames before the scene is disturbed) don't change accuracy: every CI spans zero.
-- **A MoGe-2 monocular depth cross-check** agreed in direction with the session gap. It used this pipeline's masks, so it isn't independent evidence.
-- **Plane-fitting upgrades from recent literature:**
-  - MSAC scoring with LO-RANSAC refits changes volumes by at most 1% and MAE by about 0.02 kg (`fit_plane(robust=True)`).
-  - A MAD-scaled Tukey refit was rejected: debris on one side of the tarp skews the scale estimate, and depth errors reached 87 mm.
-- **Exploratory model mass = a·V + b·H** (v2 volume plus object height): 1.04 kg LOO but 1.65 kg on the 4/7 splits. It was chosen after seeing the data.
+- **Why v2's grid undercounts** (31–59% of displaced volume): in session 1, z_ref sits 11–20 cm above the tarp; in session 2, the 2 mm cells are finer than the 3.6 mm depth pixel, so many cells get no point. FFB18 has the smallest z_ref gap, which is why the gain overshoots it.
+- **Why the fixes failed:** each works on synthetic scenes but not on real depth. Bigger cells catch outlier pixels, interpolation can't tell aliasing gaps from dropouts, and a deeper z_ref overshoots session 1. None addressed the session 2 colour bug.
+- **Zero-fit check:** density (956.28 kg/m³) × volume gives 8.98 kg MAE with the grid volume and 4.52 kg with both grid fixes, against 1.65 kg for v2's fitted gain. The mechanisms explain about half of what the gain corrects.
+- **Other:** a MoGe-2 monocular cross-check agreed with the session gap but used this pipeline's masks, so it isn't independent. MSAC/LO-RANSAC plane fitting changes MAE by about 0.02 kg (`fit_plane(robust=True)`); a MAD-scaled Tukey refit was rejected (87 mm depth errors). A mass = a·V + b·H model gave 1.04 kg LOO but 1.65 kg on 4/7 splits, and was chosen after seeing the data.
 
 ---
 
@@ -294,3 +267,4 @@ The two mechanisms explain about half of what the gain corrects.
 | FFB18: +10 kg systematic error | v1 overestimated its volume by 10 L; Approach A by 3.2 kg |
 | Shooting distance 1.2–1.5 m | Measured 1.55–1.57 m |
 | GDino/SAM2 fallback used when the depth mask fails | Never triggered |
+| Session 1 colour is BGR-ordered | The bags are rgb8; the reader's unconditional flip was the error (fixed, no numeric effect on masks) |
