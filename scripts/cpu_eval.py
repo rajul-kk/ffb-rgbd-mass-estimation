@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from ffb import experiment as ex  # noqa: E402
 from ffb.fusion import FusionConfig  # noqa: E402
 
-# report.md Approach A litres after the notebook's per-camera refit; used only to check parity.
+# full-report.md Approach A litres after the notebook's per-camera refit; used only to check parity.
 REPORT_A_L = {"FFB10": 18.70, "FFB11": 15.01, "FFB12": 22.56, "FFB17": 11.53, "FFB18": 13.19, "FFB19": 18.61,
               "FFB31": 13.24, "FFB32": 7.95, "FFB33": 14.90, "FFB34": 12.17, "FFB35": 14.38}
 FUSIONS = {

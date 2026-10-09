@@ -2,7 +2,7 @@
 
 Estimates the mass of oil palm fresh fruit bunches (FFBs) from a short top-down Intel RealSense D455 recording. Segmentation and geometry need no training data; one calibration gain is fitted to weighed bunches.
 
-Full analysis: [report.md](report.md).
+Short summary: [report.md](report.md). Full analysis: [full-report.md](full-report.md).
 
 ## Results
 
@@ -18,20 +18,20 @@ Held out: each bunch is predicted from a gain fitted on the other bunches. 10 bu
 
 **The bug behind the gain.**
 - **What happened:** session 2's RGB was recorded 35–92 s *before* its depth, with no overlap, and isn't registered to it. v2 keeps only pixels that pass both a depth and a colour test, so for session 2 its mask covered only part of the bunch.
-- **The fix:** the depth-only mask ([report §5](report.md#5-the-session-2-colour-bug-and-the-depth-only-mask)) keeps pixels more than 3 cm above a fitted tarp plane and never reads colour.
+- **The fix:** the depth-only mask ([full-report §5](full-report.md#5-the-session-2-colour-bug-and-the-depth-only-mask)) keeps pixels more than 3 cm above a fitted tarp plane and never reads colour.
 - **The effect:** session 2's error falls from 1.63 to 0.68 kg, while session 1, which never had the bug, stays at 1.57 kg.
 - **Session 1:** fusing only the steady opening frames, with unaligned depth, brings session 1 from 1.57 to 1.35 kg.
-- **Status:** exploratory. Both fixes remove defects verified in the recordings, but they were found on these 10 bunches after about a dozen variants were tried, so the numbers are optimistic. Expect 1.0–1.6 kg on new bunches. The comparison with Aqil is not statistically significant ([report §5](report.md#general-or-overfitted)).
+- **Status:** exploratory. Both fixes remove defects verified in the recordings, but they were found on these 10 bunches after about a dozen variants were tried, so the numbers are optimistic. Expect 1.0–1.6 kg on new bunches. The comparison with Aqil is not statistically significant ([full-report §5](full-report.md#general-or-overfitted)).
 
 ## Run
 
 ```bash
 pip install -r requirements.txt
 python -m pytest                      # 55 tests
-python scripts/cpu_eval.py            # v2 reproduced on CPU + fix ladder (report §7)
-python scripts/grid_fixes_eval.py     # rejected grid-volume fixes (report §7)
-python scripts/plane_mask_eval.py     # depth-only mask: held-out, threshold sweep, vs Aqil (report §5–6)
-python scripts/session1_eval.py       # steady frames and unaligned depth (report §5)
+python scripts/cpu_eval.py            # v2 reproduced on CPU + fix ladder (full-report §7)
+python scripts/grid_fixes_eval.py     # rejected grid-volume fixes (full-report §7)
+python scripts/plane_mask_eval.py     # depth-only mask: held-out, threshold sweep, vs Aqil (full-report §5–6)
+python scripts/session1_eval.py       # steady frames and unaligned depth (full-report §5)
 python scripts/make_v4_notebook.py && jupyter nbconvert --to notebook --execute --inplace notebooks/ffb_pipeline_v4.ipynb
 ```
 
@@ -75,4 +75,4 @@ docs/archive/             original project plan, compute estimates and v2 parame
 - **Protocol:** top-down camera about 1.55 m above a flat tarp; other set-ups are untested.
 - **Ground truth:** displaced volume is rounded to whole litres, a floor of about 0.24 kg MAE.
 
-See [report §8](report.md#8-limitations) for the full list.
+See [full-report §8](full-report.md#8-limitations) for the full list.

@@ -7,7 +7,7 @@ code = lambda s: cells.append(nbf.v4.new_code_cell(s))
 
 md("""# FFB pipeline v4 — depth-only plane-height mask
 
-Tests the fix for the session 2 colour bug (report §10). Session 2's RGB bags were recorded minutes before their depth bags and are not registered to them, so v2's depth ∩ colour mask cuts the bunch. `segment.plane_height_mask` segments from depth alone: pixels more than 3 cm above a RANSAC plane fitted to the tarp.
+Tests the fix for the session 2 colour bug (full-report §10). Session 2's RGB bags were recorded minutes before their depth bags and are not registered to them, so v2's depth ∩ colour mask cuts the bunch. `segment.plane_height_mask` segments from depth alone: pixels more than 3 cm above a RANSAC plane fitted to the tarp.
 
 Sections: 1 setup · 2 recording offsets · 3 masks · 4 volumes and session gap · 5 held-out vs v2 · 6 vs Aqil · 7 threshold sweep · 8 per-bunch predictions · 9 summary.
 

@@ -97,7 +97,7 @@ def cv_summary(df, model, excluded=EXCLUDED):
 
 
 def parity(s0, report_litres: dict, excluded=EXCLUDED):
-    """Compare notebook-reader grid volumes with report.md litres, and recompute v2's headline metrics."""
+    """Compare notebook-reader grid volumes with full-report.md litres, and recompute v2's headline metrics."""
     ratio = pd.Series(report_litres).reindex(s0.index) / (1000 * s0["V"])
     tab = ratio.groupby(s0["group"]).agg(["count", "mean", "std"])
     tab["cv_pct"] = 100 * tab["std"] / tab["mean"]

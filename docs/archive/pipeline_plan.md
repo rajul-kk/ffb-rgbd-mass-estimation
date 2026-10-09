@@ -1,4 +1,4 @@
-> Superseded by [report.md](../../report.md); kept as a record of the original plan.
+> Superseded by [full-report.md](../../full-report.md); kept as a record of the original plan.
 
 # Zero-Shot 3D FFB Mass Estimation — Project Plan
 
