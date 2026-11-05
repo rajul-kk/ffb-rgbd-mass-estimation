@@ -66,8 +66,8 @@ cannot be scored held-out, and at k = 9 the held-out set is a single bunch.**
 - k = 9 reproduces the repo's leave-one-out MAE of 0.99 kg, as it should.
 - Most of the gain from more calibration bunches arrives by k = 3 to 4 (1.42 to 1.08 kg); beyond k = 5 the curve is flat
   (1.05 to 0.99 kg) and far inside the interval width. Bias stays within 0.14 kg of zero (see CSV).
-- The interval narrows only slowly because it is dominated by which bunches are being scored (FFB11 and FFB17 are hard
-  at every k), not by the calibration size. The widest worry is at k = 1: a single-bunch gain can be off by 2.3 kg MAE in the worst 5% of choices.
+- The interval narrows only slowly because it is dominated by which bunches are being scored (the report names FFB11 and FFB17 as hard
+  cases; not re-checked per k here), not by the calibration size. The widest worry is at k = 1: a single-bunch gain can be off by 2.3 kg MAE in the worst 5% of choices.
 - Sensitivity: letting FFB18 into the fit pool (k = 1..10 held-out) changes MAE by at most 0.05 kg at any k. An intercept
   model (`aV+b`) is much worse for small k (2.70 kg at k = 2, 1.23 kg at k = 5, 0.99 kg at k = 9) and only matches the
   one-gain model near k = 9.
