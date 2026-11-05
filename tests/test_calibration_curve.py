@@ -76,3 +76,11 @@ def test_interval_contains_the_mean_and_bias_sign_is_right():
     df2 = frame(8, noise=0.1, seed=5)
     s2 = cc.summarise(cc.subset_errors(df2), B=2000)
     assert ((s2["mae_lo"] <= s2["mae"]) & (s2["mae"] <= s2["mae_hi"])).all()
+
+
+def test_in_sample_rows_never_mix_into_a_held_out_k():
+    df = frame(6, noise=0.2)
+    # 6 fit candidates, 5 scored: at k = 5 the subset made of the 5 scored bunches has no test bunch, the others do
+    rec = cc.subset_errors(df, fit_pool=list(df.index), score_pool=list(df.index[:5]), ks=[5, 6])
+    assert rec[rec.k == 5]["held_out"].all()
+    assert not rec[rec.k == 6]["held_out"].any()

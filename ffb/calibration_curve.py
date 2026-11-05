@@ -29,8 +29,8 @@ def subset_errors(df: pd.DataFrame, model=GLOBAL_K, fit_pool=None, score_pool=No
                   max_subsets: int = 5000, seed: int = 0) -> pd.DataFrame:
     """Long table: k, subset id, scored bunch, actual, pred, held_out. df needs columns V and mass.
 
-    A bunch is scored for a subset only if it is in score_pool and not in the subset (held_out=True). If the
-    subset leaves no scored bunch out, the subset's own scored members are scored instead (held_out=False)."""
+    A bunch is scored for a subset only if it is in score_pool and not in the subset (held_out=True). If no subset
+    of size k leaves a scored bunch out, the k's own scored members are scored in-sample (held_out=False) instead."""
     fit_pool = list(df.index if fit_pool is None else fit_pool)
     score_pool = list(df.index if score_pool is None else score_pool)
     n_par = len(model.features) + model.intercept
@@ -38,15 +38,19 @@ def subset_errors(df: pd.DataFrame, model=GLOBAL_K, fit_pool=None, score_pool=No
     rng, rows = np.random.default_rng(seed), []
     for k in ks:
         subs, _ = _subsets(len(fit_pool), k, max_subsets, rng)
+        held_rows, in_rows = [], []
         for sid, s in enumerate(subs):
             names = [fit_pool[i] for i in s]
             coef = model.fit(df.loc[names])
             test = [b for b in score_pool if b not in names]
-            held = bool(test)
-            if not held:
-                test = [b for b in score_pool if b in names]
-            pred = model.predict(coef, df.loc[test])
-            rows += [(k, sid, b, df.at[b, "mass"], p, held) for b, p in zip(test, pred)]
+            if test:
+                pred = model.predict(coef, df.loc[test])
+                held_rows += [(k, sid, b, df.at[b, "mass"], p, True) for b, p in zip(test, pred)]
+            else:
+                inside = [b for b in score_pool if b in names]
+                pred = model.predict(coef, df.loc[inside])
+                in_rows += [(k, sid, b, df.at[b, "mass"], p, False) for b, p in zip(inside, pred)]
+        rows += held_rows or in_rows  # in-sample rows only when no subset of this size leaves a scored bunch out
     return pd.DataFrame(rows, columns=["k", "subset", "ffb", "actual", "pred", "held_out"])
 
 

@@ -47,6 +47,7 @@ def main(argv=None):
     ap.add_argument("--out", type=Path, default=ROOT / "zeroshot_cache" / "masks")
     ap.add_argument("--providers", nargs="+", default=MODEL_PROVIDERS)
     ap.add_argument("--modalities", nargs="+", default=["rgb", "hmap"])
+    ap.add_argument("--redo", action="store_true", help="recompute providers that already have a meta.json")
     ap.add_argument("--bunches", nargs="*", default=None)
     a = ap.parse_args(argv)
     warnings.simplefilter("ignore")
@@ -66,8 +67,11 @@ def main(argv=None):
     (a.out / "run_info.json").write_text(json.dumps(info, indent=2))
     for modality in a.modalities:
         for pname in a.providers:
-            prov, meta = masking.make(pname), {}
             odir = a.out / modality / pname
+            if (odir / "meta.json").exists() and not a.redo:  # finished earlier; resume after a crash
+                print(f"skip {modality} {pname} (meta.json exists)", flush=True)
+                continue
+            prov, meta = masking.make(pname), {}
             odir.mkdir(parents=True, exist_ok=True)
             for f in files:
                 req = load_request(f, modality)
