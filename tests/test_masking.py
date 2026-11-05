@@ -109,3 +109,14 @@ def test_height_image_is_bright_on_the_bunch_and_dark_on_the_tarp(scene):
     img = masking.height_image(depth, K, plane)
     assert img.shape == depth.shape + (3,) and img.dtype == np.uint8
     assert img[hit].mean() > 100 and img[~hit].mean() < 5
+
+
+def test_pick_box_prefers_score_among_central_boxes_of_sane_size():
+    shape = (720, 1280)
+    boxes = [(560, 300, 700, 430),     # central, score .4
+             (600, 320, 720, 420),     # central, score .7  -> chosen
+             (1200, 600, 1270, 700),   # far corner, score .95 -> too far from centre
+             (0, 0, 1280, 720)]        # whole image, score .99 -> too large
+    box, score = masking.pick_box(boxes, [0.4, 0.7, 0.95, 0.99], shape)
+    assert box == (600.0, 320.0, 720.0, 420.0) and score == 0.7
+    assert masking.pick_box([], [], shape) == (None, 0.0)

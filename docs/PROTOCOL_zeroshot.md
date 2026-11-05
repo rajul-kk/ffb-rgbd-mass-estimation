@@ -109,5 +109,9 @@ Actual times will be reported from the run.
 
 ## 8. Deviations log
 
-Any change after this commit is appended here with the reason and date, and the affected result is marked
-exploratory. Entries so far: none (the `yoloworld_lowconf_sam2` arm is declared above, before scoring).
+Any change after the freeze commit is appended here with the reason, and the affected result is marked exploratory.
+
+- **Arm B (`hmap`) was not run locally.** Reason: the CPU estimate in section 7 was wrong by about 10x for Grounding DINO. Measured on this machine while other jobs shared it, one Grounding DINO + SAM 2 call took 60-355 s (median about 80 s), against the 10-25 s estimated, so arm B (66 calls over 11 bunches) did not fit in the session. The run was also killed once by memory pressure and resumed. Arm B is packaged in `notebooks/kaggle_zeroshot_infer.ipynb` (same script, default modalities) but has no results. Arm A (rgb) completed in full.
+- **YOLO-World validity check** after it returned zero detections on all six session 1 bunches at both 0.10 and 0.02: the same model and image (FFB10) detects `person` (top confidence 0.16-0.21, so the pipeline and colour order work) and returns zero boxes at confidence 0.01 for `oil palm fruit bunch`, `fruit` and `palm fruit` at image sizes 640 and 1280. This is a check of the implementation, not tuning; no prompt was changed and no YOLO-World mass result is better than the failure-penalised baseline reported.
+- The `yoloworld_lowconf_sam2` arm (declared in section 3 before scoring) behaved identically to the 0.10 arm.
+- Smoke-test timing for section 7 used FFB10 and FFB11 only (status and seconds, no mass).

@@ -1,0 +1,12 @@
+{
+  "python": "3.10.0",
+  "torch": "2.10.0+cpu",
+  "transformers": "4.57.6",
+  "gdino": "IDEA-Research/grounding-dino-tiny",
+  "sam2": "facebook/sam2.1-hiera-tiny",
+  "yolow": "yolov8s-worldv2.pt",
+  "text": "oil palm fruit bunch",
+  "device": "cpu",
+  "threads": 10,
+  "ultralytics": "8.4.202"
+}

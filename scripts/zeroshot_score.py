@@ -21,10 +21,11 @@ from ffb import masking, zeroshot as zs  # noqa: E402
 from zeroshot_infer import load_request  # noqa: E402
 
 S1 = ["FFB10", "FFB11", "FFB12", "FFB17", "FFB18", "FFB19"]
-ARMS = {  # modality -> (fit pool, scored); None = every bunch found
+ARMS_ALL = {  # modality -> (fit pool, scored); None = every bunch found
     "rgb": (S1, [b for b in S1 if b not in ex.EXCLUDED]),
     "hmap": (None, None),
 }
+ARMS = ARMS_ALL  # narrowed in main() to the arms that have saved masks
 CONTROL = "depth_plane"
 
 
@@ -35,11 +36,12 @@ def main(argv=None):
     ap.add_argument("--B", type=int, default=20000)
     a = ap.parse_args(argv)
     a.out.mkdir(parents=True, exist_ok=True)
+    arms = {m: v for m, v in ARMS_ALL.items() if (a.cache / "masks" / m).is_dir()}
     gt = ex.ground_truth(ROOT)
     mass = gt["Actual_Mass_kg"]
     names = sorted((p.stem for p in (a.cache / "inputs").glob("FFB*.npz")), key=lambda s: int(s[3:]))
     rows, meta_rows = [], []
-    for modality, (fit_pool, scored) in ARMS.items():
+    for modality, (fit_pool, scored) in arms.items():
         fit_pool = fit_pool or names
         scored = scored or [b for b in names if b not in ex.EXCLUDED]
         providers = [CONTROL] + sorted(p.name for p in (a.cache / "masks" / modality).glob("*") if p.is_dir())
@@ -65,7 +67,7 @@ def main(argv=None):
     vol.to_csv(a.out / "volumes.csv", index=False)
 
     per_rows, sum_rows = [], []
-    for modality, (fit_pool, scored) in ARMS.items():
+    for modality, (fit_pool, scored) in arms.items():
         fit_pool = fit_pool or names
         scored = scored or [b for b in names if b not in ex.EXCLUDED]
         arm = vol[vol.arm == modality]
