@@ -32,3 +32,8 @@ __pycache__/
 
 # Third-party theses (kept locally, not redistributed)
 *.pdf
+
+# Zero-shot benchmark working files and model downloads
+zeroshot_cache/
+*.safetensors
+*.onnx

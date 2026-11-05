@@ -76,6 +76,24 @@ def postprocess(mask: Optional[np.ndarray], min_px: int = 20) -> Optional[np.nda
     return out if int(out.sum()) >= min_px else None
 
 
+def pick_box(boxes, scores, shape, max_centre_dist: float = 0.75, area_range=(0.003, 0.35)):
+    """Highest-scoring (x0, y0, x1, y1) box whose centre is within max_centre_dist of the half-diagonal from the
+    image centre and whose area is within area_range of the image. Returns (box, score) or (None, 0.0)."""
+    h, w = shape
+    half = float(np.hypot(w / 2, h / 2))
+    best, best_score = None, 0.0
+    for b, s in zip(boxes, scores):
+        x0, y0, x1, y1 = (float(v) for v in b)
+        area = max(0.0, x1 - x0) * max(0.0, y1 - y0) / (h * w)
+        if not area_range[0] <= area <= area_range[1]:
+            continue
+        if np.hypot((x0 + x1) / 2 - w / 2, (y0 + y1) / 2 - h / 2) > max_centre_dist * half:
+            continue
+        if float(s) > best_score:
+            best, best_score = (x0, y0, x1, y1), float(s)
+    return best, best_score
+
+
 def iou(a: Optional[np.ndarray], b: Optional[np.ndarray]) -> float:
     """Intersection over union; NaN if either mask is missing, 0 if both are empty."""
     if a is None or b is None:
