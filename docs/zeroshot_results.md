@@ -70,6 +70,12 @@ What this says, and does not say:
   control (IoU 0.94, -0.06 kg). Grounding DINO's boxes on the render overlap the bunch poorly (IoU 0.29).
 - YOLO-World again detected nothing.
 - n = 10; intervals are wide. No zero-shot route to all 10 bunches beats the depth-plane mask.
+- Note added 2026-11-07: the "oracle box" uses no labels. Its box is the bounding box of the control mask, which is itself
+  computed from depth alone (`depth_plane`), so "depth box -> SAM 2" is a legitimate label-free two-stage pipeline, not only
+  a diagnostic. It was already measured: -0.06 kg [-0.09, -0.03] here and -0.11 [-0.14, -0.07] in arm A, both far below the
+  protocol's detectability bound (about 0.6 kg for n = 10; PROTOCOL_zeroshot). Reading: SAM 2 refinement of the depth mask
+  gives no material gain, so no further zero-shot run is planned and the depth-plane mask stays the pipeline's mask. The
+  protocol's label "diagnostic, not zero-shot" is kept in the tables as registered.
 ## (b) Calibration-sample-size curve
 
 Volumes from `results/session1/volumes.csv` (row `B_steady_native`), model `mass = g V`. 10 scored bunches; every subset
