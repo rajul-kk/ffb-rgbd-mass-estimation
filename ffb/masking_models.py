@@ -23,6 +23,32 @@ YOLOW_CONF_LOW = 0.02                    # sensitivity arm, added after a smoke 
 CENTRE_POINT = (0.5, 0.5)                # fractions of (width, height)
 CENTRE_BOX = (0.25, 0.25, 0.75, 0.75)    # fractions of (x0, y0, x1, y1)
 
+DEVICE = "cpu"  # set once by the driver via set_device(); models are moved there on first load
+
+
+def resolve_device(requested: str = "auto", cuda_available: Optional[bool] = None) -> str:
+    """'auto' -> 'cuda' when a GPU is visible, else 'cpu'. An explicit 'cuda' without a GPU is an error, not a silent fallback."""
+    if cuda_available is None:
+        import torch
+        cuda_available = torch.cuda.is_available()
+    if requested == "auto":
+        return "cuda" if cuda_available else "cpu"
+    if requested == "cuda" and not cuda_available:
+        raise RuntimeError("device 'cuda' requested but no GPU is visible")
+    if requested not in ("cpu", "cuda"):
+        raise ValueError(f"unknown device {requested!r}")
+    return requested
+
+
+def set_device(device: str) -> None:
+    global DEVICE
+    DEVICE = device
+
+
+def _to(inputs, device):
+    """Move a processor's BatchFeature/dict of tensors to device, leaving non-tensors alone."""
+    return {k: (v.to(device) if hasattr(v, "to") else v) for k, v in inputs.items()}
+
 
 class _Sam2:
     """Shared lazily loaded SAM 2 (transformers Sam2Model); providers reuse one instance."""
@@ -39,7 +65,7 @@ class _Sam2:
         from transformers import Sam2Model, Sam2Processor
         self.torch = torch
         self.processor = Sam2Processor.from_pretrained(model_id)
-        self.model = Sam2Model.from_pretrained(model_id).eval()
+        self.model = Sam2Model.from_pretrained(model_id).eval().to(DEVICE)
 
     def segment(self, rgb: np.ndarray, box=None, point=None):
         """Return (mask bool at rgb resolution, predicted IoU). Box: one mask. Point: best of three by predicted IoU."""
@@ -52,9 +78,9 @@ class _Sam2:
             kw["input_labels"] = [[[1]]]
         inputs = self.processor(**kw)
         with self.torch.no_grad():
-            out = self.model(**inputs, multimask_output=box is None)
-        masks = self.processor.post_process_masks(out.pred_masks, inputs["original_sizes"])[0]  # (1, n, H, W)
-        ious = out.iou_scores[0, 0].detach().numpy()
+            out = self.model(**_to(inputs, DEVICE), multimask_output=box is None)
+        masks = self.processor.post_process_masks(out.pred_masks.cpu(), inputs["original_sizes"])[0]  # (1, n, H, W)
+        ious = out.iou_scores[0, 0].detach().cpu().numpy()
         best = int(np.argmax(ious))
         return masks[0, best].numpy().astype(bool), float(ious[best])
 
@@ -74,7 +100,7 @@ class GroundingDinoSam2:
         if self._m is None:
             from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor
             self._p = AutoProcessor.from_pretrained(GDINO_ID)
-            self._m = AutoModelForZeroShotObjectDetection.from_pretrained(GDINO_ID).eval()
+            self._m = AutoModelForZeroShotObjectDetection.from_pretrained(GDINO_ID).eval().to(DEVICE)
 
     def __call__(self, req: MaskRequest) -> MaskResult:
         if (r := _no_rgb(req)) is not None:
@@ -86,11 +112,11 @@ class GroundingDinoSam2:
         h, w = req.rgb.shape[:2]
         inputs = self._p(images=Image.fromarray(req.rgb), text=TEXT_QUERY + ".", return_tensors="pt")
         with torch.no_grad():
-            out = self._m(**inputs)
+            out = self._m(**_to(inputs, DEVICE))
         res = self._p.post_process_grounded_object_detection(
-            out, inputs["input_ids"], threshold=GDINO_BOX_THRESHOLD, text_threshold=GDINO_TEXT_THRESHOLD,
+            out, inputs["input_ids"].to(DEVICE), threshold=GDINO_BOX_THRESHOLD, text_threshold=GDINO_TEXT_THRESHOLD,
             target_sizes=[(h, w)])[0]
-        box, score = masking.pick_box(res["boxes"].tolist(), res["scores"].tolist(), (h, w))
+        box, score = masking.pick_box(res["boxes"].cpu().tolist(), res["scores"].cpu().tolist(), (h, w))
         meta = dict(n_detections=len(res["scores"]), box=box, seconds_detect=round(time.time() - t0, 1))
         if box is None:
             return MaskResult(None, None, meta | {"reason": "no detection"})
@@ -117,8 +143,8 @@ class YoloWorldSam2:
         self._load()
         t0 = time.time()
         h, w = req.rgb.shape[:2]
-        det = self._m.predict(req.rgb[..., ::-1], conf=self.conf, verbose=False)[0].boxes  # ultralytics expects BGR
-        box, score = masking.pick_box(det.xyxy.tolist(), det.conf.tolist(), (h, w))
+        det = self._m.predict(req.rgb[..., ::-1], conf=self.conf, verbose=False, device=DEVICE)[0].boxes  # BGR input
+        box, score = masking.pick_box(det.xyxy.cpu().tolist(), det.conf.cpu().tolist(), (h, w))
         meta = dict(n_detections=len(det), box=box, seconds_detect=round(time.time() - t0, 1))
         if box is None:
             return MaskResult(None, None, meta | {"reason": "no detection"})

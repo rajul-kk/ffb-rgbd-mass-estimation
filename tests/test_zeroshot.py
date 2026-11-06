@@ -58,3 +58,15 @@ def test_summary_with_failures_has_both_scorings():
     s = zs.summarise_provider(pb, ctrl, B=500)
     assert s["n_detected"] == 2
     assert s["pen_mae"] > s["det_mae"]          # penalising failures cannot look better than ignoring them here
+
+
+def test_resolve_device():
+    import pytest
+    from ffb import masking_models as mm
+    assert mm.resolve_device("auto", cuda_available=False) == "cpu"
+    assert mm.resolve_device("auto", cuda_available=True) == "cuda"
+    assert mm.resolve_device("cpu", cuda_available=True) == "cpu"
+    with pytest.raises(RuntimeError):
+        mm.resolve_device("cuda", cuda_available=False)
+    with pytest.raises(ValueError):
+        mm.resolve_device("tpu", cuda_available=True)

@@ -49,15 +49,19 @@ def main(argv=None):
     ap.add_argument("--modalities", nargs="+", default=["rgb", "hmap"])
     ap.add_argument("--redo", action="store_true", help="recompute providers that already have a meta.json")
     ap.add_argument("--bunches", nargs="*", default=None)
+    ap.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     a = ap.parse_args(argv)
     warnings.simplefilter("ignore")
     files = sorted(a.inputs.glob("FFB*.npz"), key=lambda p: int(p.stem[3:]))
     if a.bunches:
         files = [f for f in files if f.stem in a.bunches]
     import torch, transformers
+    device = masking_models.resolve_device(a.device)
+    masking_models.set_device(device)
     info = dict(python=platform.python_version(), torch=torch.__version__, transformers=transformers.__version__,
                 gdino=masking_models.GDINO_ID, sam2=masking_models.SAM2_ID, yolow=masking_models.YOLOW_WEIGHTS,
-                text=masking_models.TEXT_QUERY, device="cpu", threads=torch.get_num_threads())
+                text=masking_models.TEXT_QUERY, device=device, threads=torch.get_num_threads(),
+                gpu=torch.cuda.get_device_name(0) if device == "cuda" else None)
     try:
         import ultralytics
         info["ultralytics"] = ultralytics.__version__
