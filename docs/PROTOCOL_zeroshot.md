@@ -115,3 +115,8 @@ Any change after the freeze commit is appended here with the reason, and the aff
 - **YOLO-World validity check** after it returned zero detections on all six session 1 bunches at both 0.10 and 0.02: the same model and image (FFB10) detects `person` (top confidence 0.16-0.21, so the pipeline and colour order work) and returns zero boxes at confidence 0.01 for `oil palm fruit bunch`, `fruit` and `palm fruit` at image sizes 640 and 1280. This is a check of the implementation, not tuning; no prompt was changed and no YOLO-World mass result is better than the failure-penalised baseline reported.
 - The `yoloworld_lowconf_sam2` arm (declared in section 3 before scoring) behaved identically to the 0.10 arm.
 - Smoke-test timing for section 7 used FFB10 and FFB11 only (status and seconds, no mass).
+- 2026-11-06: arm B run on a Kaggle T4 GPU instead of CPU (section 7 allowed Kaggle). Code change before the run: the
+  providers now move models and inputs to the GPU (`--device`), with no change to prompts, thresholds or
+  post-processing. Library versions on Kaggle differ from the local CPU run (torch 2.11/cu130, transformers 5.20.2 vs
+  2.10/4.57.6). Check: arm A re-run on the same GPU gave the same detections on 11/11 bunches and masks differing by
+  12 pixels in total, so arm A keeps its CPU masks and arm B is comparable to it.

@@ -35,8 +35,8 @@ What this says, and does not say:
   pipeline works for another class (`person`). Its row is the no-information baseline (predict the training mean).
 - **IoU is not mass error.** SAM 2 masks differ from the control by IoU 0.83 yet give the same mass error; the central box
   differs by 0.96 and gives a 17 kg difference. Both statements are about difference from the control mask, not truth.
-- Session 2 (5 scored bunches) could not be tested with colour. Arm B (height-map images, all 10 scored bunches) is
-  packaged for Kaggle and **has not been run**, so nothing is claimed about 3D-rendered input.
+- Session 2 (5 scored bunches) could not be tested with colour. Arm B (height-map images, all 10 scored bunches) was
+  run later on a Kaggle GPU; see section (a2).
 - Prior repo result (1.99 kg for Grounding DINO + SAM 2 against 1.27 kg, in-sample) is not reproduced here: with the
   protocol's selection rule and a held-out gain, Grounding DINO + SAM 2 is level with the control.
 
@@ -44,6 +44,32 @@ Runtime on this CPU (i7-1355U, shared with other jobs): Grounding DINO tiny + SA
 in the scored table), SAM 2 alone 3-36 s, YOLO-World 1-33 s (first call includes model load). The section 7 estimate was too optimistic for
 Grounding DINO.
 
+
+## (a2) Zero-shot masks, arm B (height-above-plane image, 10 scored bunches; Kaggle T4 GPU, 2026-11-06)
+
+Same script, prompts, thresholds, post-processing and scoring as arm A; masks from `notebooks/kaggle_zeroshot_infer.ipynb`
+(kernel `rajulkabir/ffb-zeroshot-gpu`, private). Run info: torch 2.11.0+cu130, transformers 5.20.2, ultralytics 8.4.203,
+Tesla T4 (`zeroshot_cache/masks/run_info_hmap_gpu.json`). The same kernel re-ran arm A on the GPU as a device check:
+detections agreed on 11/11 bunches for every provider, 22 of 24 detected masks were byte-identical to the CPU masks,
+and the rest differed by 12 pixels in total. Arm A results above are the original CPU masks, unchanged.
+
+| Provider | Detected | MAE kg [95% CI] | MAPE % | Bias kg | Paired diff vs control, kg [CI] | Mean IoU vs control |
+|---|---|---|---|---|---|---|
+| depth_plane (control) | 10/10 | 1.02 [0.58, 1.50] | 7.5 | -0.03 | - | - |
+| Grounding DINO + SAM 2 | 10/10 | 5.18 [4.03, 6.30] | 37.3 | -2.05 | +4.16 [2.96, 5.39] | 0.29 |
+| SAM 2, centre point | 10/10 | 2.78 [1.23, 5.09] | 21.3 | -1.20 | +1.76 [0.13, 4.19] | 0.77 |
+| SAM 2, central box | 10/10 | 7.94 [3.82, 12.40] | 50.1 | -6.30 | +6.92 [2.81, 11.42] | 0.10 |
+| YOLO-World + SAM 2 (both thresholds) | 0/10 | 2.91 [1.51, 4.53] (penalised) | 19.2 | -0.51 | +1.89 [0.25, 3.66] | n/a |
+| SAM 2, oracle box (diagnostic, not zero-shot) | 10/10 | 0.96 [0.50, 1.45] | 7.1 | -0.02 | -0.06 [-0.09, -0.03] | 0.94 |
+
+What this says, and does not say:
+- **On the rendered height map every zero-shot provider is worse than the control**, by 1.8 to 6.9 kg. As stated in
+  advance (design D7), detectors trained on photographs seeing a grey-scale height render is a harsh test; this is
+  not a verdict on the models for real colour images.
+- **Localisation is the failure, not segmentation**: given the control's box, SAM 2 on the height map matches the
+  control (IoU 0.94, -0.06 kg). Grounding DINO's boxes on the render overlap the bunch poorly (IoU 0.29).
+- YOLO-World again detected nothing.
+- n = 10; intervals are wide. No zero-shot route to all 10 bunches beats the depth-plane mask.
 ## (b) Calibration-sample-size curve
 
 Volumes from `results/session1/volumes.csv` (row `B_steady_native`), model `mass = g V`. 10 scored bunches; every subset
